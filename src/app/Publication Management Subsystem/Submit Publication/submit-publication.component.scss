@@ -1,0 +1,460 @@
+$ub-maroon: #800020;
+$white: #ffffff;
+$black: #000000;
+$light-gray: #f5f5f5;
+$border-gray: #d6d6d6;
+$text-gray: #666666;
+
+* {
+  box-sizing: border-box;
+}
+
+.submit-page {
+  min-height: 100vh;
+  background: $light-gray;
+  font-family: Arial, sans-serif;
+}
+
+
+/* =========================
+   HEADER
+   ========================= */
+
+.page-header {
+  width: 100%;
+  min-height: 80px;
+  padding: 0 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background: $ub-maroon;
+  color: $white;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ub-logo {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+}
+
+.header-title {
+  h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 14px;
+  }
+}
+
+.back-button {
+  border: 1px solid $white;
+  background: transparent;
+  color: $white;
+
+  padding: 10px 18px;
+  border-radius: 5px;
+
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+
+  &:hover {
+    background: $white;
+    color: $ub-maroon;
+  }
+}
+
+
+/* =========================
+   PAGE CONTENT
+   ========================= */
+
+.page-content {
+  width: 100%;
+  max-width: 1000px;
+
+  margin: 0 auto;
+  padding: 45px 25px 60px;
+}
+
+.page-heading {
+  margin-bottom: 30px;
+
+  h2 {
+    margin: 0 0 8px;
+
+    color: $ub-maroon;
+
+    font-size: 30px;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    color: $text-gray;
+    font-size: 15px;
+  }
+}
+
+
+/* =========================
+   FORM
+   ========================= */
+
+.publication-form {
+  background: $white;
+
+  border-radius: 8px;
+
+  padding: 35px;
+
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.section-heading {
+  margin-bottom: 30px;
+
+  padding-bottom: 18px;
+
+  border-bottom: 1px solid $border-gray;
+
+  h3 {
+    margin: 0 0 5px;
+
+    font-size: 20px;
+    color: $black;
+  }
+
+  p {
+    margin: 0;
+
+    font-size: 14px;
+    color: $text-gray;
+  }
+}
+
+
+/* =========================
+   FORM GROUPS
+   ========================= */
+
+.form-group {
+  margin-bottom: 25px;
+
+  label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    color: $black;
+
+    span {
+      color: $ub-maroon;
+    }
+  }
+
+  input[type="text"],
+  textarea {
+    width: 100%;
+
+    padding: 12px 14px;
+
+    border: 1px solid $border-gray;
+    border-radius: 5px;
+
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+
+    outline: none;
+
+    transition: border-color 0.2s ease;
+
+    &:focus {
+      border-color: $ub-maroon;
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 150px;
+  }
+
+  small {
+    display: block;
+
+    margin-top: 7px;
+
+    color: $text-gray;
+
+    font-size: 12px;
+  }
+}
+
+
+/* =========================
+   AUTHORS
+   ========================= */
+
+.author-row {
+  display: flex;
+  gap: 10px;
+
+  input {
+    flex: 1;
+  }
+}
+
+.add-author-button {
+  flex-shrink: 0;
+
+  padding: 0 18px;
+
+  border: 1px solid $ub-maroon;
+  border-radius: 5px;
+
+  background: $white;
+  color: $ub-maroon;
+
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  &:hover {
+    background: $ub-maroon;
+    color: $white;
+  }
+}
+
+
+/* =========================
+   FILE UPLOAD
+   ========================= */
+
+.file-upload {
+  position: relative;
+
+  border: 2px dashed $border-gray;
+  border-radius: 6px;
+
+  background: #fafafa;
+
+  transition: 0.2s ease;
+
+  &:hover {
+    border-color: $ub-maroon;
+  }
+
+  input[type="file"] {
+    position: absolute;
+
+    width: 1px;
+    height: 1px;
+
+    opacity: 0;
+  }
+}
+
+.file-label {
+  min-height: 160px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  cursor: pointer;
+
+  color: $black;
+
+  strong {
+    font-size: 15px;
+  }
+
+  small {
+    margin: 0;
+  }
+}
+
+.upload-icon {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 42px;
+  height: 42px;
+
+  border-radius: 50%;
+
+  background: $ub-maroon;
+  color: $white;
+
+  font-size: 22px;
+}
+
+
+/* =========================
+   BUTTONS
+   ========================= */
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+
+  margin-top: 35px;
+
+  padding-top: 25px;
+
+  border-top: 1px solid $border-gray;
+}
+
+.cancel-button,
+.submit-button {
+  padding: 12px 22px;
+
+  border-radius: 5px;
+
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.cancel-button {
+  border: 1px solid $border-gray;
+
+  background: $white;
+  color: $black;
+
+  &:hover {
+    background: $light-gray;
+  }
+}
+
+.submit-button {
+  border: 1px solid $ub-maroon;
+
+  background: $ub-maroon;
+  color: $white;
+
+  &:hover {
+    background: #650019;
+  }
+}
+
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 768px) {
+
+  .page-header {
+    min-height: 75px;
+    padding: 0 20px;
+  }
+
+  .ub-logo {
+    width: 50px;
+    height: 50px;
+  }
+
+  .header-title {
+    h1 {
+      font-size: 17px;
+    }
+
+    p {
+      font-size: 12px;
+    }
+  }
+
+  .back-button {
+    display: none;
+  }
+
+  .page-content {
+    padding: 30px 18px 50px;
+  }
+
+  .publication-form {
+    padding: 25px 20px;
+  }
+
+  .page-heading {
+    h2 {
+      font-size: 25px;
+    }
+  }
+
+  .author-row {
+    flex-direction: column;
+
+    .add-author-button {
+      min-height: 44px;
+    }
+  }
+}
+
+
+@media (max-width: 480px) {
+
+  .page-header {
+    padding: 0 15px;
+  }
+
+  .header-left {
+    gap: 10px;
+  }
+
+  .ub-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .header-title {
+    h1 {
+      font-size: 15px;
+    }
+
+    p {
+      font-size: 11px;
+    }
+  }
+
+  .publication-form {
+    padding: 20px 15px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+
+    button {
+      width: 100%;
+    }
+  }
+}

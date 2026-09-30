@@ -1,0 +1,169 @@
+<div class="submit-page">
+
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <img
+        src="/assets/images/ub%20logo.png"
+        alt="University of Botswana"
+        class="ub-logo"
+      >
+
+      <div class="header-title">
+        <h1>University of Botswana</h1>
+        <p>Publication Management System</p>
+      </div>
+    </div>
+
+    <button class="back-button" type="button">
+      Back to Dashboard
+    </button>
+  </header>
+
+
+  <!-- Main Content -->
+  <main class="page-content">
+
+    <div class="page-heading">
+      <h2>Submit Publication</h2>
+      <p>
+        Submit your manuscript for processing and review.
+      </p>
+    </div>
+
+
+    <!-- Publication Form -->
+    <section class="publication-form">
+
+      <div class="section-heading">
+        <h3>Publication Details</h3>
+        <p>Enter the required information about your publication.</p>
+      </div>
+
+
+      <!-- Title -->
+      <div class="form-group">
+        <label for="title">
+          Publication Title
+          <span>*</span>
+        </label>
+
+        <input
+          id="title"
+          type="text"
+          placeholder="Enter the publication title"
+        >
+      </div>
+
+
+      <!-- Abstract -->
+      <div class="form-group">
+        <label for="abstract">
+          Abstract
+          <span>*</span>
+        </label>
+
+        <textarea
+          id="abstract"
+          rows="7"
+          placeholder="Enter the publication abstract"
+        ></textarea>
+      </div>
+
+
+      <!-- Authors -->
+      <div class="form-group">
+        <label>
+          Authors
+          <span>*</span>
+        </label>
+
+        <div class="author-row">
+          <input
+            type="text"
+            placeholder="Enter author name"
+          >
+
+          <button
+            type="button"
+            class="add-author-button"
+          >
+            + Add Author
+          </button>
+        </div>
+      </div>
+
+
+      <!-- Keywords -->
+      <div class="form-group">
+        <label for="keywords">
+          Domain Keywords
+          <span>*</span>
+        </label>
+
+        <input
+          id="keywords"
+          type="text"
+          placeholder="e.g. Artificial Intelligence, Education, Data Science"
+        >
+
+        <small>
+          Separate multiple keywords with commas.
+        </small>
+      </div>
+
+
+      <!-- File Upload -->
+      <div class="form-group">
+        <label>
+          Publication Document
+          <span>*</span>
+        </label>
+
+        <div class="file-upload">
+          <input
+            id="publicationFile"
+            type="file"
+            accept=".pdf,application/pdf"
+          >
+
+          <label
+            for="publicationFile"
+            class="file-label"
+          >
+            <span class="upload-icon">↑</span>
+
+            <strong>Choose PDF File</strong>
+
+            <small>
+              PDF format only • Maximum size: 100 MB
+            </small>
+          </label>
+        </div>
+      </div>
+
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+
+        <button
+          type="button"
+          class="cancel-button"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="submit-button"
+        >
+          Submit Publication
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
