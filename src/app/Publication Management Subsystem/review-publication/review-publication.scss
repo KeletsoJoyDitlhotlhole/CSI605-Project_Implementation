@@ -1,0 +1,279 @@
+$ub-maroon: #800020;
+$ub-maroon-light: #f7edef;
+$white: #ffffff;
+$black: #111111;
+$light-gray: #f5f5f5;
+$border-gray: #e2e2e2;
+$text-gray: #666666;
+
+.review-page {
+  min-height: 100vh;
+  background: $light-gray;
+  font-family: Arial, sans-serif;
+}
+
+
+/* =========================
+   HEADER
+   ========================= */
+
+.page-header {
+  width: 100%;
+  min-height: 80px;
+  padding: 0 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: $ub-maroon;
+  color: $white;
+  box-sizing: border-box;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ub-logo {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+}
+
+.header-title {
+  h1 { margin: 0; font-size: 20px; font-weight: 700; }
+  p  { margin: 4px 0 0; font-size: 14px; }
+}
+
+.back-button {
+  padding: 10px 18px;
+  border: 1px solid $white;
+  border-radius: 5px;
+  background: transparent;
+  color: $white;
+  font-size: 14px;
+  text-decoration: none;
+  transition: 0.2s ease;
+
+  &:hover {
+    background: $white;
+    color: $ub-maroon;
+  }
+}
+
+
+/* =========================
+   PAGE CONTENT
+   ========================= */
+
+.page-content {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 45px 25px 60px;
+}
+
+.page-heading {
+  margin-bottom: 30px;
+
+  h2 {
+    margin: 0 0 8px;
+    color: $ub-maroon;
+    font-size: 30px;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    color: $text-gray;
+    font-size: 15px;
+  }
+}
+
+.result-count {
+  margin: 0 0 14px;
+  color: $text-gray;
+  font-size: 14px;
+}
+
+
+/* =========================
+   PUBLICATION CARDS
+   ========================= */
+
+.publication-list {
+  display: grid;
+  gap: 18px;
+}
+
+.publication-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 26px;
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+
+  /* Maroon top line, revealed on hover */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: $ub-maroon;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.2s ease;
+  }
+
+  &:hover {
+    transform: translateY(-3px);
+    border-color: rgba(128, 0, 32, 0.35);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+
+    &::before { transform: scaleX(1); }
+    .arrow { transform: translateX(5px); }
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(128, 0, 32, 0.25);
+    outline-offset: 3px;
+  }
+
+  h3 {
+    margin: 0;
+    color: $black;
+    font-size: 19px;
+    line-height: 1.35;
+  }
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reference {
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+  background: #fff4e0;
+  color: #8a5a00;
+
+  &[data-status="rejected"] { background: #fdecea; color: #8a1c1c; }
+  &[data-status="approved"] { background: #e8f5e9; color: #1b5e20; }
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin: 0;
+  color: $text-gray;
+  font-size: 13px;
+
+  strong { color: $black; }
+}
+
+.keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    padding: 3px 10px;
+    border-radius: 14px;
+    background: $ub-maroon-light;
+    color: $ub-maroon;
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
+.abstract {
+  margin: 0;
+  color: $text-gray;
+  font-size: 14px;
+  line-height: 1.65;
+
+  /* Show the first 4 lines only; the full text is on the detail page */
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid #eef0f3;
+  color: $ub-maroon;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.arrow {
+  font-size: 20px;
+  transition: transform 0.2s ease;
+}
+
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 768px) {
+  .page-header { min-height: 75px; padding: 0 20px; }
+  .ub-logo { width: 50px; height: 50px; }
+  .header-title h1 { font-size: 17px; }
+  .header-title p { font-size: 12px; }
+  .back-button { padding: 8px 12px; font-size: 13px; }
+
+  .page-content { padding: 30px 18px 50px; }
+  .page-heading h2 { font-size: 25px; }
+  .publication-card { padding: 20px; }
+}
+
+@media (max-width: 480px) {
+  .page-header { padding: 0 15px; }
+  .header-left { gap: 10px; }
+  .ub-logo { width: 44px; height: 44px; }
+  .header-title h1 { font-size: 15px; }
+  .header-title p { font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .publication-card,
+  .publication-card::before,
+  .arrow {
+    transition: none;
+  }
+}

@@ -1,0 +1,105 @@
+<div class="review-page">
+
+  <header class="page-header">
+    <div class="header-left">
+      <img src="/assets/images/ub%20logo.png" alt="University of Botswana" class="ub-logo">
+      <div class="header-title">
+        <h1>University of Botswana</h1>
+        <p>Publication Management System</p>
+      </div>
+    </div>
+    <a class="back-button" href="/dashboard">Back to Dashboard</a>
+  </header>
+
+  <main class="page-content">
+
+    <div class="page-heading">
+      <h2>Review Publications</h2>
+      <p>Publications waiting for a decision, and those that were rejected. Select one to read it in full.</p>
+    </div>
+
+    <!-- <p class="result-count">2 publications</p> -->
+
+    <p class="result-count">
+      Showing {{ rangeStart() }}–{{ rangeEnd() }} of {{ total() }}
+      {{ total() === 1 ? 'publication' : 'publications' }}
+    </p>
+
+    @if (total() === 0) {
+      <div class="empty-card" role="status">
+
+        <div class="empty-icon">
+          <span>✓</span>
+        </div>
+
+        <h3>All caught up</h3>
+
+        <p>
+          There are no publications waiting for review.
+          New submissions will appear here as soon as they are made.
+        </p>
+
+        <a class="empty-action" routerLink="/dashboard">
+          Back to Dashboard
+        </a>
+
+      </div>
+    } @else {
+      <div class="publication-list">
+        @for (pub of publications(); track pub.publication_id) {
+          <!-- Card 1 -->
+          <a class="publication-card" href="#">
+            <div class="card-top">
+              <span class="reference">{{ pub.publication_reference }}</span>
+              <span class="status-badge" data-status="pending">{{ pub.status }}</span>
+            </div>
+
+            <h3>{{ pub.title }}</h3>
+
+            <p class="meta">
+              <span><strong>Authors:</strong> {{ pub.authors.join(", ") }}</span>
+              <span><strong>Submitted:</strong>{{ (pub.submitted_at ?? pub.created_at) }}</span>
+            </p>
+
+            @if (pub.keywords) {
+              <ul class="keywords">
+                @for (keyword of splitKeywords(pub.keywords); track keyword) {
+                  <li>{{ keyword }}</li>
+                }
+              </ul>
+            }
+
+            <p class="abstract">{{ pub.abstract }}</p>
+
+            <div class="card-footer">
+              <span>Read and review</span>
+              <span class="arrow">→</span>
+            </div>
+          </a>
+        }
+      </div>
+    }
+
+    
+
+    @if (totalPages() > 1) {
+      <nav class="pagination" aria-label="Review queue pages">
+        <button type="button" class="page-btn"
+                [disabled]="page() <= 1"
+                (click)="goToPage(page() - 1)">
+          ← Previous
+        </button>
+
+        <span class="page-info">Page {{ page() }} of {{ totalPages() }}</span>
+
+        <button type="button" class="page-btn"
+                [disabled]="page() >= totalPages()"
+                (click)="goToPage(page() + 1)">
+          Next →
+        </button>
+      </nav>
+    }
+
+  </main>
+
+</div>
