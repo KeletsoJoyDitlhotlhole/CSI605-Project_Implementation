@@ -1,0 +1,103 @@
+
+<div class="login-page">
+  <header class="top-bar">
+    <a routerLink="/login" class="brand">
+      <img src="/assets/images/ub%20logo.png"
+           alt="University of Botswana logo">
+      <div>
+        <h1>University of Botswana</h1>
+        <p>Publication Management System</p>
+      </div>
+    </a>
+  </header>
+
+  <main class="login-main">
+    <section class="welcome-panel">
+      <div class="welcome-content">
+        <span class="eyebrow">UNIVERSITY RESEARCH REPOSITORY</span>
+        <h2>Knowledge.<br>Research.<br>Impact.</h2>
+        <p>
+          Access the University of Botswana Publication Management System
+          to submit, review, and discover academic research.
+        </p>
+        <div class="welcome-divider"></div>
+        <p class="welcome-note">
+          Supporting research excellence and the sharing of knowledge.
+        </p>
+      </div>
+    </section>
+
+    <section class="form-panel">
+      <div class="login-card">
+        <span class="form-eyebrow">WELCOME BACK</span>
+        <h2>Sign in to your account</h2>
+        <p class="form-description">
+          Enter your account details to continue.
+        </p>
+
+        <div *ngIf="errorMessage" class="alert" role="alert">
+          {{ errorMessage }}
+        </div>
+
+        <form (ngSubmit)="login()" #loginForm="ngForm">
+          <div class="form-group">
+            <label for="username">Username or Student/Staff ID</label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              [(ngModel)]="username"
+              placeholder="Enter your username or ID"
+              autocomplete="username"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="password-wrapper">
+              <input
+                id="password"
+                name="password"
+                [type]="showPassword ? 'text' : 'password'"
+                [(ngModel)]="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                required>
+              <button
+                type="button"
+                class="show-password"
+                (click)="togglePassword()">
+                {{ showPassword ? 'Hide' : 'Show' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="form-options">
+            <label class="remember-option">
+              <input
+                type="checkbox"
+                name="rememberMe"
+                [(ngModel)]="rememberMe">
+              Remember me
+            </label>
+            <a href="#" (click)="$event.preventDefault()">
+              Forgot password?
+            </a>
+          </div>
+
+          <button class="login-button" type="submit">
+            Sign In <span>→</span>
+          </button>
+        </form>
+
+        <div class="security-note">
+          Use your registered University account.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <p>University of Botswana | Publication Management System</p>
+  </footer>
+</div>
