@@ -1,0 +1,87 @@
+<div class="review-page">
+
+  <header class="page-header">
+    <div class="header-left">
+      <img src="/assets/images/ub%20logo.png" alt="University of Botswana" class="ub-logo">
+      <div class="header-title">
+        <h1>University of Botswana</h1>
+        <p>Publication Management System</p>
+      </div>
+    </div>
+    <a class="back-button" routerLink="/review-publication">Back to Review Queue</a>
+  </header>
+
+  <main class="page-content">
+
+    @if (pub) {
+      <div class="page-heading">
+        <h2>Review Publication</h2>
+        <p>Review the full details below and make a decision.</p>
+      </div>
+
+      <div class="publication-detail">
+
+        <div class="card-top">
+          <span class="reference">{{ pub.publication_reference }}</span>
+          <span class="status-badge" [attr.data-status]="status()">{{ status() }}</span>
+        </div>
+
+        <h3 class="detail-title">{{ pub.title }}</h3>
+
+        <p class="meta">
+          <span><strong>Authors:</strong> {{ pub.authors?.join(", ") }}</span>
+          <span><strong>Submitted:</strong> {{ (pub.submitted_at ?? pub.created_at)}}</span>
+        </p>
+
+        @if (pub.keywords) {
+          <ul class="keywords">
+            @for (keyword of pub.keywords.split(','); track keyword) {
+              <li>{{ keyword.trim() }}</li>
+            }
+          </ul>
+        }
+
+        <section class="detail-section">
+          <h4>Abstract</h4>
+          <p class="full-abstract">{{ pub.abstract }}</p>
+        </section>
+
+        <section class="detail-section">
+          <h4>Document</h4>
+          <a class="document-link" [href]="pub.file_url" target="_blank" rel="noopener">
+            View uploaded file
+          </a>
+        </section>
+
+        @if(message()) {
+          <p class="message success" role="status">
+            {{ message() }}
+            <a class="text-link" routerLink="/review-publication">
+              Go back to reviews
+            </a>
+          </p>
+        }
+
+        @if (error()) {
+          <p class="message error" role="alert">
+            {{ error() }}
+          </p>
+        }
+
+        <div class="review-actions">
+          <a type="button" class="btn btn-reject" routerLink="/dashboard" style="text-decoration: none;">Cancel</a>
+          <button type="button" class="btn btn-reject" (click)="onReject()">Reject</button>
+          <button type="button" class="btn btn-approve" (click)="onApprove()">Approve</button>
+        </div>
+
+      </div>
+    } @else {
+      <div class="empty-card">
+        <h3>Loading Error</h3>
+        <p>Please go back and select the publication again.</p>
+        <a class="empty-action" routerLink="/review-publication">Back to List</a>
+      </div>
+    }
+
+  </main>
+</div>

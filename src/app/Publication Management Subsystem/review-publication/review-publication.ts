@@ -2,11 +2,11 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { PublicationService } from '../../services/publication.service';
 import { ReviewPublication as ReviewPub } from '../../models/publication.model';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DatePipe } from '@angular/common';
+// import { DatePipe } from '@angular/common';
 import { catchError, EMPTY, map, switchMap, tap } from 'rxjs';
 
 @Component({
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink],
   selector: 'app-review-publication',
   styleUrl: './review-publication.scss',
   templateUrl: './review-publication.html',

@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { inject, Service } from "@angular/core";
 import { Observable } from "rxjs";
-import { APIResponse, ReviewResponse, SubmitResponse } from "../models/publication.model";
+import { APIResponse, PubStatusResponse, ReviewResponse, SubmitResponse } from "../models/publication.model";
 
 @Service()
 export class PublicationService {
@@ -22,5 +22,13 @@ export class PublicationService {
     fetchReviewList(page = 1, limit = 10): Observable<ReviewResponse> {
         const params = new HttpParams().set("page", page).set("limit", limit);
         return this._httpClient.get<ReviewResponse>(`${this._apiUrl}review`);
+    }
+
+    // Change publication status
+    updatePubStatus(id: string, status: string): Observable<PubStatusResponse> {
+        return this._httpClient.patch<PubStatusResponse>(
+            `${this._apiUrl}${encodeURIComponent(id)}/status`, 
+            {status}
+        );
     }
 }

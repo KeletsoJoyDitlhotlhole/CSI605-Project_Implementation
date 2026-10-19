@@ -3,7 +3,7 @@ const crypto = require("crypto")
 const fs = require("fs");
 
 // Publication statuses that will need attention from a reviwer
-const REVIEW_STATUSES = ["submitted", "pending"];
+const REVIEW_STATUSES = ["submitted", "pending", "rejected"];
 
 // Get all publications
 exports.getAllPublcations = async (req, res) => {
@@ -223,3 +223,34 @@ exports.createPublication = async (req, res) => {
         client.release()
     }
 };
+
+// Change publication status
+exports.updatePubStatus = async (req, res) => {
+    const { status } = req.body;
+
+    const sql = `
+        UPDATE 
+            public."Publications" 
+        SET 
+            status = $1, 
+            updated_at = now() 
+        WHERE 
+            publication_id = $2
+        RETURNING 
+            publication_id, 
+            status, 
+            updated_at`;
+
+    try {
+        const result = await db.query(sql, [status, req.params.id]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({error: "The publication you are looking for does not exist"});
+        }
+
+        return res.status(200).json(result.rows[0]);
+    } catch (err) {
+        console.error({err: err.message});
+        return res.status(500).json({error: err.message});
+    }
+}

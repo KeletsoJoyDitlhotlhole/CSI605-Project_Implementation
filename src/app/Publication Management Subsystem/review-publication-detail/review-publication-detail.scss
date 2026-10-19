@@ -1,0 +1,311 @@
+$ub-maroon: #800020;
+$ub-maroon-light: #f7edef;
+$white: #ffffff;
+$black: #111111;
+$light-gray: #f5f5f5;
+$border-gray: #e2e2e2;
+$text-gray: #666666;
+
+.review-page {
+  min-height: 100vh;
+  background: $light-gray;
+  font-family: Arial, sans-serif;
+}
+
+/* HEADER */
+.page-header {
+  width: 100%;
+  min-height: 80px;
+  padding: 0 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: $ub-maroon;
+  color: $white;
+  box-sizing: border-box;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ub-logo {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+}
+
+.header-title {
+  h1 { margin: 0; font-size: 20px; font-weight: 700; }
+  p  { margin: 4px 0 0; font-size: 14px; }
+}
+
+.back-button {
+  padding: 10px 18px;
+  border: 1px solid $white;
+  border-radius: 5px;
+  background: transparent;
+  color: $white;
+  font-size: 14px;
+  text-decoration: none;
+  transition: 0.2s ease;
+
+  &:hover {
+    background: $white;
+    color: $ub-maroon;
+  }
+}
+
+/* PAGE CONTENT (this is what centers everything) */
+.page-content {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 45px 25px 60px;
+  box-sizing: border-box;
+}
+
+.page-heading {
+  margin-bottom: 30px;
+
+  h2 {
+    margin: 0 0 8px;
+    color: $ub-maroon;
+    font-size: 30px;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    color: $text-gray;
+    font-size: 15px;
+  }
+}
+
+/* SHARED DETAIL PIECES */
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reference {
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+  background: #fff4e0;
+  color: #8a5a00;
+
+  &[data-status="rejected"] { background: #fdecea; color: #8a1c1c; }
+  &[data-status="approved"] { background: #e8f5e9; color: #1b5e20; }
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin: 0;
+  color: $text-gray;
+  font-size: 13px;
+
+  strong { color: $black; }
+}
+
+.keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    padding: 3px 10px;
+    border-radius: 14px;
+    background: $ub-maroon-light;
+    color: $ub-maroon;
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
+/* =========================
+   PUBLICATION DETAIL
+   ========================= */
+
+.publication-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  .card-top {
+    padding-bottom: 14px;
+    border-bottom: 1px solid $border-gray;
+  }
+}
+
+.detail-title {
+  margin: 0;
+  color: $black;
+  font-size: 26px;
+  line-height: 1.3;
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 18px;
+  border-top: 1px solid $border-gray;
+
+  h4 {
+    margin: 0;
+    color: $ub-maroon;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+}
+
+/* Same look as .abstract, but with no line clamp so the full text shows */
+.full-abstract {
+  margin: 0;
+  color: $text-gray;
+  font-size: 15px;
+  line-height: 1.75;
+  white-space: pre-line; /* keeps paragraph breaks from the stored text */
+}
+
+.document-link {
+  align-self: flex-start;
+  color: $ub-maroon;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
+/* =========================
+   REVIEW ACTIONS
+   ========================= */
+
+.review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 20px;
+  border-top: 1px solid $border-gray;
+}
+
+.btn {
+  padding: 11px 26px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+
+  &:focus-visible {
+    outline: 3px solid rgba(128, 0, 32, 0.25);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-reject {
+  background: $white;
+  border-color: #8a1c1c;
+  color: #8a1c1c;
+
+  &:hover:not(:disabled) { background: #fdecea; }
+}
+
+.btn-approve {
+  background: #1b5e20;
+  color: $white;
+
+  &:hover:not(:disabled) { background: #14491a; }
+}
+
+/* Fallback card shown when the publication data is missing */
+.empty-card {
+  margin-top: 40px;
+  padding: 30px;
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: 10px;
+  text-align: center;
+
+  h3 { margin: 0 0 8px; color: $black; }
+  p  { margin: 0 0 18px; color: $text-gray; font-size: 14px; }
+}
+
+.empty-action {
+  color: $ub-maroon;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
+.message {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 5px;
+  font-size: 14px;
+
+  &.error   { background: #fdecea; color: #8a1c1c; border: 1px solid #f5c2c0; }
+  &.success { background: #e8f5e9; color: #1b5e20; border: 1px solid #b7dfb9; }
+}
+
+.text-link {
+  margin-left: 10px;
+  color: $ub-maroon;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .page-header { min-height: 75px; padding: 0 20px; }
+  .ub-logo { width: 50px; height: 50px; }
+  .header-title h1 { font-size: 17px; }
+  .header-title p { font-size: 12px; }
+  .back-button { padding: 8px 12px; font-size: 13px; }
+  .page-content { padding: 30px 18px 50px; }
+  .page-heading h2 { font-size: 25px; }
+}
+
+@media (max-width: 480px) {
+  .page-header { padding: 0 15px; }
+  .header-left { gap: 10px; }
+  .ub-logo { width: 44px; height: 44px; }
+  .header-title h1 { font-size: 15px; }
+  .header-title p { font-size: 11px; }
+}

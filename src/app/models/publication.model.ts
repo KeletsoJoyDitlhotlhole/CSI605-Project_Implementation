@@ -50,3 +50,10 @@ export interface ReviewResponse {
     totalPages: number;
     publications: ReviewPublication[];
 }
+
+export type PubStatus = "approved" | "rejected";
+export interface PubStatusResponse {
+    publication_id: string;
+    status: string;
+    updated_at: string;
+}

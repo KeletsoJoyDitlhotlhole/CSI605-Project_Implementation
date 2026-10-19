@@ -12,4 +12,7 @@ router.get("/review", publicationsController.getReviewList);
 // Upload only one file found in the form field document
 router.post("/", upload.single("document"), publicationsController.createPublication);
 
+// affect pub status: approve|reject
+router.patch("/:id/status", publicationsController.updatePubStatus);
+
 module.exports = router;

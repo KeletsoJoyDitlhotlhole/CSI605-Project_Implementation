@@ -48,7 +48,9 @@
       <div class="publication-list">
         @for (pub of publications(); track pub.publication_id) {
           <!-- Card 1 -->
-          <a class="publication-card" href="#">
+          <a class="publication-card"
+            [routerLink]="['/review-publication', pub.publication_id]"
+            [state]="{ publication: pub}">
             <div class="card-top">
               <span class="reference">{{ pub.publication_reference }}</span>
               <span class="status-badge" data-status="pending">{{ pub.status }}</span>
@@ -58,7 +60,7 @@
 
             <p class="meta">
               <span><strong>Authors:</strong> {{ pub.authors.join(", ") }}</span>
-              <span><strong>Submitted:</strong>{{ (pub.submitted_at ?? pub.created_at) }}</span>
+              <span><strong>Submitted:</strong>{{ (pub.submitted_at) }}</span>
             </p>
 
             @if (pub.keywords) {
