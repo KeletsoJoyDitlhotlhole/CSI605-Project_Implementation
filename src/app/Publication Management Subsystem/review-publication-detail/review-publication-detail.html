@@ -1,3 +1,5 @@
+<!-- /review-publication-detail.html -->
+
 <div class="review-page">
 
   <header class="page-header">
@@ -46,11 +48,68 @@
           <p class="full-abstract">{{ pub.abstract }}</p>
         </section>
 
+        <!-- View the publication file -->
+        <div class="pdf-viewer" [class.open]="showPdf()">
+          <div class="pdf-viewer-inner">
+            @if (pdfUrl()) {
+              <iframe [src]="pdfUrl()" title="Publication file"></iframe>
+            }
+          </div>
+        </div>
+
         <section class="detail-section">
           <h4>Document</h4>
-          <a class="document-link" [href]="pub.file_url" target="_blank" rel="noopener">
-            View uploaded file
+          <a class="document-link" href="#" (click)="$event.preventDefault(); onShowPub()">
+            {{ pdfLoading() ? "Loading publication ..." : showPdf() ? "Hide publication" : "Show publication" }}
           </a>
+          @if (pdfError()) { <p class="err">{{ pdfError() }}</p>}
+        </section>
+
+        <section class="feedback">
+          <h4>Feedback</h4>
+
+          <button type="button" class="link-btn" (click)="toggleForm()">
+            {{ showForm ? 'Close' : 'Add review feedback' }}
+          </button>
+
+          @if (showForm) {
+            <form [formGroup]="commentForm" (ngSubmit)="submitComment()" class="comment-form">
+              <label for="comment-title">Comment title</label>
+              <input id="comment-title" type="text" formControlName="title" maxlength="150" />
+              @if (commentForm.controls.title.touched && commentForm.controls.title.invalid) {
+                <small class="err">Title is required.</small>
+              }
+
+              <label for="comment-details">Details</label>
+              <textarea id="comment-details" rows="4" formControlName="details"></textarea>
+              @if (commentForm.controls.details.touched && commentForm.controls.details.invalid) {
+                <small class="err">Please enter the comment details.</small>
+              }
+
+              @if (commentError()) {
+                <p class="err" role="alert">{{ commentError() }}</p>
+              }
+
+              <div class="actions">
+                <button type="button" (click)="cancelComment()">Cancel</button>
+                <button type="submit" [disabled]="savingComment()">
+                  {{ savingComment() ? 'Saving…' : 'Add comment' }}
+                </button>
+              </div>
+            </form>
+          }
+
+          @if (comments().length) {
+            <ul class="comment-list">
+              @for (c of comments(); track c.id) {
+                <li class="comment">
+                  <h5>{{ c.title }}</h5>
+                  <p>{{ c.details }}</p>
+                  <!-- <small>{{ c.createdAt | date: 'medium' }}</small> -->
+                </li>
+              }
+            </ul>
+          }
         </section>
 
         @if(message()) {

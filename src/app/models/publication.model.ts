@@ -57,3 +57,15 @@ export interface PubStatusResponse {
     status: string;
     updated_at: string;
 }
+
+export interface ReviewComment {
+    id: number;
+    title: string;
+    details: string;
+    createdAt: string;
+    reviewerId?: number;
+}
+export interface CommentBody {
+    title: string;
+    details: string;
+}

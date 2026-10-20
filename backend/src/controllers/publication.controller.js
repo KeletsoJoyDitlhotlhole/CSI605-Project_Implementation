@@ -1,6 +1,9 @@
+// publication.controller.js
+
 const db = require("../config/database");
 const crypto = require("crypto")
 const fs = require("fs");
+const path = require("path");
 
 // Publication statuses that will need attention from a reviwer
 const REVIEW_STATUSES = ["submitted", "pending", "rejected"];
@@ -157,7 +160,7 @@ exports.createPublication = async (req, res) => {
     }
 
     if (title.trim().length > 155 || cleanAuthors.some(a => a.length > 50)) {
-        fstat.unlink(req.path, () => {});
+        fs.unlink(req.path, () => {});
         return res.status(400).json({error: "Title (max 150) or an author name (max 50) is too long"});
     }
 
@@ -252,5 +255,104 @@ exports.updatePubStatus = async (req, res) => {
     } catch (err) {
         console.error({err: err.message});
         return res.status(500).json({error: err.message});
+    }
+}
+
+// Get publication file
+exports.getPubFile = async (req, res) => {
+    const sql = `SELECT original_filename, stored_filename FROM "Publication File" WHERE publication_id = $1 ORDER BY uploaded_at DESC LIMIT 1`;
+
+    try {
+        const result = await db.query(sql, [req.params.id]);
+
+        if (result.rowCount === 0)
+            return res.status(404)
+                    .json({message: "The publication file was not found"});
+
+        const {original_filename, stored_filename } = result.rows[0];
+
+        // prepare the file
+        const uploadDir = path.resolve(__dirname, "../../uploads");
+        console.log(uploadDir);
+        const filePath = path.join(uploadDir, path.basename(stored_filename));
+
+        if (!fs.existsSync(filePath))
+            return res.status(404).
+                    json({message: "The publication file is missing."});
+
+        // set response hearders for the file
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(original_filename)}"`);
+        fs.createReadStream(filePath).pipe(res);
+    }
+
+    catch (err) {
+        console.error(err);
+        res.status(500).json({message: "We failed to load the publication file"});
+    }
+}
+
+// get all comments for a publication
+exports.getAllReviewComments = async (req, res) => {
+    const sql = `
+        SELECT 
+            id, title, details, created_at AS "createdAt", reviewer_id AS "reviewerId"
+        FROM 
+            "Review Comments"
+        WHERE
+            publication_id = $1
+        ORDER BY
+            created_at DESC
+    `;
+
+    try {
+        const result = await db.query(
+            sql,
+            [req.params.id]
+        );
+
+        return res.status(200).json(result.rows);
+    }
+
+    catch (err) {
+        console.error({ error: err});
+        return res.status(500).json({ message: "Failed to load review comments"});
+    }
+}
+
+// Creta a review comment for a publication
+exports.createReviewComment = async (req, res) => {
+
+    const title = (req.body.title ?? "").trim();
+    const details = (req.body.details).trim();
+
+    if (!title || !details) 
+        return res.status(400)
+                .json({message: "Comment title or details are required"});
+
+    const sql = `
+        INSERT 
+        INTO 
+            "Review Comments" (publication_id, reviewer_id, title, details)
+        VALUES
+            ($1, $2, $3, $4)
+        RETURNING
+            id, title, details, created_at as "createdAt", reviewer_id as "reviewerId"
+        `;
+
+    // placeholder value, remove or comment out after implementing authentication
+    const reviewerId = 1;
+
+    try {
+        const result = await db.query(
+            sql,
+            [req.params.id, req.user?.id ?? reviewerId, title, details]
+        );
+        return res.status(201).json(result.rows[0]);
+    }
+
+    catch (err) {
+        console.error({ message: err.message });
+        return res.status(500).json({ message: "Failed to save review comment." });
     }
 }

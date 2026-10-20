@@ -1,7 +1,9 @@
+// /publication.service.ts
+
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { inject, Service } from "@angular/core";
 import { Observable } from "rxjs";
-import { APIResponse, PubStatusResponse, ReviewResponse, SubmitResponse } from "../models/publication.model";
+import { APIResponse, CommentBody, PubStatusResponse, ReviewComment, ReviewResponse, SubmitResponse } from "../models/publication.model";
 
 @Service()
 export class PublicationService {
@@ -30,5 +32,27 @@ export class PublicationService {
             `${this._apiUrl}${encodeURIComponent(id)}/status`, 
             {status}
         );
+    }
+
+    // get publication file
+    getPubFile(publicationId: string): Observable<Blob> {
+        return this._httpClient.get(
+            `${this._apiUrl}review/${publicationId}/file`,
+            { responseType: 'blob'}
+        );
+    }
+
+    /**
+     * Get comments from the API
+     */
+    getComments(publicationId: string): Observable<ReviewComment[]> {
+        return this._httpClient.get<ReviewComment[]>(`${this._apiUrl}review/${publicationId}/comments`)
+    }
+
+    /**
+     * Create a comment
+     */
+    addComment(publicationId: string, commentBody: CommentBody) {
+        return this._httpClient.post<ReviewComment>(`${this._apiUrl}review/${publicationId}/comments`, commentBody);
     }
 }
