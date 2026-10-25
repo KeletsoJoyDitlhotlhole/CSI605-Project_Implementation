@@ -4,8 +4,14 @@ import { DashboardComponent } from './Dashboard/dashboard.component';
 import { SubmitPublicationComponent } from '../Publication Management Subsystem/Submit Publication/submit-publication.component';
 import { ReviewPublication } from '../Publication Management Subsystem/review-publication/review-publication';
 import { ReviewPublicationDetail } from '../Publication Management Subsystem/review-publication-detail/review-publication-detail';
+import { Login } from './Login/login.component';
 
 export const routes: Routes = [
+
+  {
+    path: 'login',
+    component: Login
+  },
 
   {
     path: 'dashboard',
