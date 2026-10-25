@@ -1,8 +1,19 @@
+
 const pool = require('../config/database');
 const crypto = require('crypto');
+const fs = require('fs/promises');
+
+const ALLOWED_TYPES = [
+  'Journal Article',
+  'Conference Paper',
+  'Thesis',
+  'Dissertation'
+];
 
 const submitPublication = async (req, res) => {
-  const client = await pool.connect();
+  let client;
+  let transactionStarted = false;
+  let submissionSucceeded = false;
 
   try {
     const {
@@ -10,57 +21,183 @@ const submitPublication = async (req, res) => {
       abstract,
       keywords,
       submittedBy,
+      publicationType,
       authors
     } = req.body;
 
-    // Basic validation
-    if (!title || !abstract || !keywords || !submittedBy || !authors) {
+    // Validate required fields.
+    if (typeof title !== 'string' || !title.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Title, abstract, keywords, submittedBy and authors are required.'
+        message: 'Publication title is required.'
+      });
+    }
+
+    if (typeof abstract !== 'string' || !abstract.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Abstract is required.'
+      });
+    }
+
+    if (typeof keywords !== 'string' || !keywords.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Domain keywords are required.'
+      });
+    }
+
+    if (
+      typeof submittedBy !== 'string' ||
+      !submittedBy.trim()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Submitting student ID is required.'
+      });
+    }
+
+    if (!ALLOWED_TYPES.includes(publicationType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Select a valid publication type.'
       });
     }
 
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: 'Publication PDF file is required.'
+        message: 'Please upload the publication PDF.'
       });
     }
 
-    // Convert authors to an array
+    // Validate authors.
     let authorList;
 
     try {
       authorList = typeof authors === 'string'
         ? JSON.parse(authors)
         : authors;
-    } catch (error) {
+    } catch {
       return res.status(400).json({
         success: false,
-        message: 'Invalid authors format.'
+        message: 'Authors must be supplied in a valid format.'
       });
     }
 
-    if (!Array.isArray(authorList) || authorList.length === 0) {
+    if (
+      !Array.isArray(authorList) ||
+      authorList.length === 0 ||
+      authorList.some(
+        author =>
+          typeof author !== 'string' || !author.trim()
+      )
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'At least one author is required.'
+        message: 'Enter at least one valid author name.'
       });
     }
+
+    const cleanTitle = title.trim();
+    const cleanAbstract = abstract.trim();
+    const cleanKeywords = keywords.trim();
+    const cleanSubmittedBy = submittedBy.trim();
+    const cleanAuthors = authorList.map(author => author.trim());
+
+    client = await pool.connect();
 
     await client.query('BEGIN');
+    transactionStarted = true;
 
-    const publicationId = `PUB-${Date.now()}`;
+    // Find the student and their assigned lecturer.
+    const userResult = await client.query(
+      `
+      SELECT
+        s.user_id,
+        s.role,
+        s.supervisor_id,
+        l.role AS supervisor_role
+      FROM "Users" s
+      LEFT JOIN "Users" l
+        ON l.user_id = s.supervisor_id
+      WHERE s.user_id = $1
+      `,
+      [cleanSubmittedBy]
+    );
 
+    if (userResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+
+      return res.status(400).json({
+        success: false,
+        message: 'The submitting user does not exist.'
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    if (user.role?.toLowerCase() !== 'student') {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+
+      return res.status(403).json({
+        success: false,
+        message: 'Only students can submit publications through this form.'
+      });
+    }
+
+    if (
+      !user.supervisor_id ||
+      user.supervisor_role?.toLowerCase() !== 'lecturer'
+    ) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+
+      return res.status(400).json({
+        success: false,
+        message: 'No valid lecturer is assigned to this student.'
+      });
+    }
+
+    // Prevent duplicate titles, ignoring case and surrounding spaces.
+    const duplicateResult = await client.query(
+      `
+      SELECT publication_id
+      FROM "Publications"
+      WHERE LOWER(TRIM(title)) = LOWER(TRIM($1))
+      LIMIT 1
+      `,
+      [cleanTitle]
+    );
+
+    if (duplicateResult.rows.length > 0) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+
+      return res.status(409).json({
+        success: false,
+        message: 'A publication with this title already exists.'
+      });
+    }
+
+    // IDs must fit the database column limits.
+    // PUB- plus 24 hexadecimal characters = 28 characters.
+    const publicationId =
+      `PUB-${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
+
+    // Keep the publication reference readable.
     const publicationReference =
-      `UB-PUB-${new Date().getFullYear()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+      `UB-PUB-${new Date().getFullYear()}-${crypto
+        .randomBytes(4)
+        .toString('hex')
+        .toUpperCase()}`;
 
-    // Insert publication
+    // Save the publication with its assigned lecturer.
     await client.query(
       `
-      INSERT INTO "Publications"
-      (
+      INSERT INTO "Publications" (
         abstract,
         keywords,
         submitted_by,
@@ -70,32 +207,33 @@ const submitPublication = async (req, res) => {
         submitted_at,
         publication_id,
         publication_reference,
-        title
+        title,
+        publication_type,
+        lecturer_id
       )
-      VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW(), $5, $6, $7)
+      VALUES (
+        $1, $2, $3, $4, NOW(), NOW(), NOW(),
+        $5, $6, $7, $8, $9
+      )
       `,
       [
-        abstract,
-        keywords,
-        submittedBy,
-        'SUBMITTED',
+        cleanAbstract,
+        cleanKeywords,
+        user.user_id,
+        'Pending',
         publicationId,
         publicationReference,
-        title
+        cleanTitle,
+        publicationType,
+        user.supervisor_id
       ]
     );
 
-    // Insert authors
-    for (let i = 0; i < authorList.length; i++) {
-      const author = authorList[i];
-
-      const publicationAuthorId =
-        `AUTH-${Date.now()}-${i}-${Math.round(Math.random() * 10000)}`;
-
+    // Save all authors in their supplied order.
+    for (let i = 0; i < cleanAuthors.length; i++) {
       await client.query(
         `
-        INSERT INTO "Publication Author"
-        (
+        INSERT INTO "Publication Author" (
           author_order,
           publication_id,
           publication_author_id,
@@ -106,20 +244,20 @@ const submitPublication = async (req, res) => {
         [
           i + 1,
           publicationId,
-          publicationAuthorId,
-          author
+          `AUTH-${crypto.randomUUID()}`,
+          cleanAuthors[i]
         ]
       );
     }
 
-    // Insert uploaded file information
+    // Save uploaded PDF metadata.
+    // FILE- plus 24 hexadecimal characters = 29 characters.
     const fileId =
-      `FILE-${Date.now()}-${Math.round(Math.random() * 10000)}`;
+      `FILE-${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
 
     await client.query(
       `
-      INSERT INTO "Publication File"
-      (
+      INSERT INTO "Publication File" (
         file_id,
         publication_id,
         original_filename,
@@ -134,35 +272,80 @@ const submitPublication = async (req, res) => {
         publicationId,
         req.file.originalname,
         req.file.filename,
-        submittedBy
+        user.user_id
+      ]
+    );
+
+    // Record the initial status.
+    await client.query(
+      `
+      INSERT INTO "Publication Status History" (
+        publication_id,
+        previous_status,
+        new_status,
+        changed_by,
+        comments
+      )
+      VALUES ($1, NULL, $2, $3, $4)
+      `,
+      [
+        publicationId,
+        'Pending',
+        user.user_id,
+        'Publication submitted'
       ]
     );
 
     await client.query('COMMIT');
+    transactionStarted = false;
+    submissionSucceeded = true;
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Publication submitted successfully.',
       publication: {
         publicationId,
         publicationReference,
-        status: 'SUBMITTED'
+        publicationType,
+        lecturerId: user.supervisor_id,
+        status: 'Pending'
       }
     });
 
   } catch (error) {
-    await client.query('ROLLBACK');
+    if (client && transactionStarted) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Transaction rollback failed:', rollbackError);
+      }
+
+      transactionStarted = false;
+    }
 
     console.error('Publication submission error:', error);
 
-    res.status(500).json({
+    // Do not leave the user with an unexplained server error.
+    return res.status(500).json({
       success: false,
-      message: 'Failed to submit publication.',
-      error: error.message
+      message: 'Failed to submit publication. Please check your details and try again.'
     });
 
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
+
+    // Remove the uploaded file if the database submission failed.
+    if (!submissionSucceeded && req.file?.path) {
+      try {
+        await fs.unlink(req.file.path);
+      } catch (fileError) {
+        if (fileError.code !== 'ENOENT') {
+          console.error('Uploaded file cleanup failed:', fileError);
+        }
+      }
+    }
   }
 };
 
