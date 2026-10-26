@@ -1,181 +1,266 @@
-import { 
-  Component, 
-
-  // Wrapper around native DOM element... we can grab the 
-  // <input type="file"> element and clear it after
-  // successful submission
-  ElementRef,
-
-  // get dependency - e.g., component depends on service class
-  // so we inject swervices 
-  inject, 
-
-  // holds value and automatically tells Ang when the value
-  // changes so the UI updates.
-  // used for state that changes after HTTP responses 
-  // (like submitting or error message)
-  signal, 
-
-  // signal based query.
-  // grab reference to an element in the HTML template 
-  // by its #templateReference name
-  viewChild 
-} from '@angular/core';
-
-// required to use [(ngModel)]
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-// links or routes
-import { RouterLink } from '@angular/router';
-
-// handles calls to backend
-// this is the dependency that gets handled
-import { PublicationService } from '../../services/publication.service';
+import { HttpClient } from '@angular/common/http';
+import { Router, RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-submit-publication',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './submit-publication.component.html',
   styleUrl: './submit-publication.component.scss'
 })
-
 export class SubmitPublicationComponent {
-  
-  // dependency injection
-  private publicService = inject(PublicationService);
-  private fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
+  private readonly apiUrl =
+    'http://127.0.0.1:3000/api/publications';
 
-  // file size constant
-  private readonly MAX_FILE_SIZE = 100 * 1024 * 1024;
+  title = '';
+  abstract = '';
+  keywords = '';
+  submittedBy = '';
+  publicationType = '';
 
-  // form fields binded with [(ngModule)]
-  title = "";
-  abstract = "";
-  keywords = "";
-  authorInput = "";
+  authors: string[] = [''];
+  selectedFile: File | null = null;
 
-  //signals
-  authors = signal<string[]>([]);
-  file = signal<File | null>(null);
-  errorMessage = signal('');
-  successMessage = signal('');
-  submitting = signal(false);
+  errorMessage = '';
+  successMessage = '';
+  fieldErrors: Record<string, string> = {};
 
-  // add authors
+  isSubmitting = false;
+
+  readonly publicationTypes = [
+    'Journal Article',
+    'Conference Paper',
+    'Thesis',
+    'Dissertation'
+  ];
+
+  constructor(
+    private readonly http: HttpClient,
+    private readonly router: Router
+  ) {}
+
+  trackByIndex(index: number): number {
+    return index;
+  }
+
   addAuthor(): void {
-    // takes whatever is written in the auhorfield
-    // cleanses it (trimming trailing spance)
-    // reads what is type on author because it is binding 
-    // by [(ngModel)]="authorInput"
-    const name = this.authorInput.trim();
-
-    // check if name is not empty && if authors array doesn't contain name
-    // authors array is being handled by a signal thats why the perculiar
-    // checking
-    if (name && !this.authors().includes(name)) {
-      // array spread because a new array is created
-      this.authors.update(list => [...list, name]);
-    }
-
-    // clears the input field so that the user can enter the next user
-    this.authorInput = ""
+    this.authors = [...this.authors, ''];
+    delete this.fieldErrors['authors'];
   }
 
-  // user clicks x to remove author
-  // index: author index in the array
   removeAuthor(index: number): void {
-    // update() creates new array
-    // filter() returns new array containing elements that pass the test
-    // _ first param is the item itself named'_' by convention to tell
-    // readers that it is intentionally unused
-    // i !== index keep every item except the one at the target index
-    // removeAuthor(1) remove author at position 1
-    this.authors.update(list => list.filter((_, i) => i !== index));
+    if (this.authors.length > 1) {
+      this.authors = this.authors.filter(
+        (_, currentIndex) => currentIndex !== index
+      );
+    }
+
+    delete this.fieldErrors['authors'];
   }
 
-  // user choose pdf on thier device
-  // function validates the file and stores it in the signal
-  // (change) event first
   onFileSelected(event: Event): void {
-    // event.target elements that triggered event
-    // files?.[0] file list
-    const selected = (event.target as HTMLInputElement).files?.[0] ?? null;
-    this.errorMessage.set('');
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
 
-    if (!selected) {
-      this.file.set(null);
+    this.selectedFile = null;
+    delete this.fieldErrors['publicationFile'];
+
+    if (!file) {
       return;
     }
 
-    if (selected.type !== 'application/pdf') {
-      this.errorMessage.set('Only PDF files are allowed');
-      this.clearFile();
+    if (
+      !file.name.toLowerCase().endsWith('.pdf') ||
+      (file.type !== '' && file.type !== 'application/pdf')
+    ) {
+      this.fieldErrors['publicationFile'] =
+        'Please select a valid PDF file.';
+
+      alert(
+        'Invalid field: PDF File. Please select a valid PDF file.'
+      );
+
+      input.value = '';
       return;
     }
 
-    if (selected.size > this.MAX_FILE_SIZE) {
-      this.errorMessage.set('The file is larger than 100MB');
-      this.clearFile();
+    if (file.size > 100 * 1024 * 1024) {
+      this.fieldErrors['publicationFile'] =
+        'The PDF must not exceed 100 MB.';
+
+      alert(
+        'Invalid field: PDF File. The file must not exceed 100 MB.'
+      );
+
+      input.value = '';
       return;
     }
 
-    this.file.set(selected);
+    this.selectedFile = file;
   }
 
-  // submit the publication
-  submit(): void {
-    this.errorMessage.set('');
-    this.successMessage.set('');
+  validateForm(): boolean {
+    this.fieldErrors = {};
 
-    // automatic add of user
-    // if user typed uauthor but forgot to add them upon submissio
-    if (this.authorInput.trim()) this.addAuthor();
+    if (!this.title.trim()) {
+      this.fieldErrors['title'] =
+        'Publication Title is required.';
+    }
 
-    // retrieve file from signal
-    const file = this.file();
-    // validation
-    if (!this.title.trim() || !this.abstract.trim() || !this.keywords.trim() || this.authors().length === 0 || !file) {
-      this.errorMessage.set("Please complete all required fields and choose a PDF file");
+    if (!this.publicationType) {
+      this.fieldErrors['publicationType'] =
+        'Publication Type is required.';
+    }
+
+    if (!this.abstract.trim()) {
+      this.fieldErrors['abstract'] =
+        'Abstract is required.';
+    }
+
+    if (!this.keywords.trim()) {
+      this.fieldErrors['keywords'] =
+        'Domain Keywords are required.';
+    }
+
+    if (!this.authors.some(author => author.trim())) {
+      this.fieldErrors['authors'] =
+        'At least one Author is required.';
+    } else if (this.authors.some(author => !author.trim())) {
+      this.fieldErrors['authors'] =
+        'Complete or remove every empty Author field.';
+    }
+
+    if (!this.selectedFile) {
+      this.fieldErrors['publicationFile'] =
+        'PDF File is required.';
+    }
+
+    if (!this.submittedBy.trim()) {
+      this.fieldErrors['submittedBy'] =
+        'Student ID is required.';
+    }
+
+    return Object.keys(this.fieldErrors).length === 0;
+  }
+
+  showMissingFieldsPopup(): void {
+    const fieldLabels: Record<string, string> = {
+      title: 'Publication Title',
+      publicationType: 'Publication Type',
+      abstract: 'Abstract',
+      keywords: 'Domain Keywords',
+      authors: 'Author',
+      publicationFile: 'PDF File',
+      submittedBy: 'Student ID'
+    };
+
+    const missingFields = Object.keys(this.fieldErrors).map(key => {
+      const label = fieldLabels[key] ?? key;
+      return `• ${label}: ${this.fieldErrors[key]}`;
+    });
+
+    if (missingFields.length > 0) {
+      alert(
+        'Please correct the following field(s):\n\n' +
+        missingFields.join('\n')
+      );
+    }
+  }
+
+  submitPublication(): void {
+    if (this.isSubmitting) {
       return;
     }
 
-    // new form data object
-    const formData = new FormData();
-    formData.append("title", this.title.trim());
-    formData.append("abstract", this.abstract.trim());
-    formData.append("keywords", this.keywords.trim());
-    // form data can carry strings and files but not arrays
-    formData.append("authors", JSON.stringify(this.authors()));
-    formData.append("document", file);
+    this.successMessage = '';
+    this.errorMessage = '';
 
-    this.submitting.set(false);
-    this.publicService.submitPublication(formData)
+    if (!this.validateForm()) {
+      this.errorMessage =
+        'Please correct the missing fields below.';
+
+      this.showMissingFieldsPopup();
+      return;
+    }
+
+    const formData = new FormData();
+
+    formData.append('title', this.title.trim());
+    formData.append('abstract', this.abstract.trim());
+    formData.append('keywords', this.keywords.trim());
+    formData.append('submittedBy', this.submittedBy.trim());
+    formData.append('publicationType', this.publicationType);
+
+    formData.append(
+      'authors',
+      JSON.stringify(
+        this.authors.map(author => author.trim())
+      )
+    );
+
+    if (this.selectedFile) {
+      formData.append(
+        'publicationFile',
+        this.selectedFile,
+        this.selectedFile.name
+      );
+    }
+
+    this.isSubmitting = true;
+
+    this.http.post<any>(this.apiUrl, formData)
+      .pipe(
+        finalize(() => {
+          this.isSubmitting = false;
+        })
+      )
       .subscribe({
-        next: res => {
-          this.submitting.set(false);
-          this.successMessage.set(`Publication sumitted. Reference: ${res.publication_reference}`);
-          this.resetForm();
+        next: response => {
+          const reference =
+            response.publication?.publicationReference;
+
+          this.successMessage = reference
+            ? `${response.message} Reference: ${reference}`
+            : response.message || 'Publication submitted successfully.';
+
+          this.errorMessage = '';
+
+          alert(
+            'Success!\n\n' +
+            (response.message || 'Publication submitted successfully.') +
+            (reference
+              ? '\nPublication Reference: ' + reference
+              : '')
+          );
         },
-        error: err => {
-          this.submitting.set(false);
-          this.errorMessage.set(err.status === 0 ? 'Cannot access the server. Please try again later.' : err.error?.error ?? 'Submission failed. Please try again');
+
+        error: error => {
+          console.error(
+            'Publication submission failed:',
+            error
+          );
+
+          this.errorMessage =
+            error.error?.message ||
+            'Submission failed. Please check your connection and try again.';
+
+          this.successMessage = '';
+
+          alert(
+            'Publication Submission Failed\n\n' +
+            this.errorMessage
+          );
         }
       });
   }
 
-  private clearFile(): void {
-    this.file.set(null);
-    const input = this.fileInput()?.nativeElement;
-    if (input) input.value = '';
-  }
-
-  private resetForm(): void {
-    this.title = '';
-    this.abstract = '';
-    this.keywords = '';
-    this.authorInput = '';
-    this.authors.set([]);
-    this.clearFile();
+  cancel(): void {
+    if (!this.isSubmitting) {
+      this.router.navigate(['/dashboard']);
+    }
   }
 }

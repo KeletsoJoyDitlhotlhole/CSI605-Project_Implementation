@@ -1,13 +1,11 @@
 <div class="submit-page">
-
-  <!-- Header -->
   <header class="page-header">
     <div class="header-left">
       <img
         src="/assets/images/ub%20logo.png"
         alt="University of Botswana"
         class="ub-logo"
-      >
+      />
 
       <div class="header-title">
         <h1>University of Botswana</h1>
@@ -15,191 +13,291 @@
       </div>
     </div>
 
-    <a class="back-button" routerLink="/dashboard">
+    <button
+      class="back-button"
+      type="button"
+      (click)="cancel()"
+      [disabled]="isSubmitting"
+    >
       Back to Dashboard
-    </a>
+    </button>
   </header>
 
-
-  <!-- Main Content -->
   <main class="page-content">
-
     <div class="page-heading">
       <h2>Submit Publication</h2>
-      <p>
-        Submit your manuscript for processing and review.
-      </p>
+      <p>Submit your manuscript for processing and review.</p>
     </div>
 
+    <div
+      *ngIf="successMessage"
+      class="success-message"
+      role="status"
+    >
+      {{ successMessage }}
+    </div>
 
-    <!-- Publication Form -->
-    <section class="publication-form">
+    <div
+      *ngIf="errorMessage"
+      class="error-message"
+      role="alert"
+    >
+      {{ errorMessage }}
+    </div>
 
+    <form
+      class="publication-form"
+      (ngSubmit)="submitPublication()"
+      novalidate
+    >
       <div class="section-heading">
         <h3>Publication Details</h3>
         <p>Enter the required information about your publication.</p>
       </div>
 
-
-      <!-- Title -->
+      <!-- Publication title -->
       <div class="form-group">
         <label for="title">
-          Publication Title
-          <span>*</span>
+          Publication Title <span>*</span>
         </label>
+
         <input
           id="title"
-          type="text"
           name="title"
-          maxlength="155"
-          placeholder="Enter the publication title"
+          type="text"
           [(ngModel)]="title"
+          placeholder="Enter the publication title"
+          [class.invalid-field]="fieldErrors['title']"
+          [attr.aria-invalid]="!!fieldErrors['title']"
+        />
+
+        <small
+          *ngIf="fieldErrors['title']"
+          class="field-error"
         >
+          {{ fieldErrors['title'] }}
+        </small>
       </div>
 
+      <!-- Publication type -->
+      <div class="form-group">
+        <label for="publicationType">
+          Publication Type <span>*</span>
+        </label>
+
+        <select
+          id="publicationType"
+          name="publicationType"
+          [(ngModel)]="publicationType"
+          [class.invalid-field]="fieldErrors['publicationType']"
+          [attr.aria-invalid]="!!fieldErrors['publicationType']"
+        >
+          <option value="">Select publication type</option>
+
+          <option
+            *ngFor="let type of publicationTypes"
+            [value]="type"
+          >
+            {{ type }}
+          </option>
+        </select>
+
+        <small
+          *ngIf="fieldErrors['publicationType']"
+          class="field-error"
+        >
+          {{ fieldErrors['publicationType'] }}
+        </small>
+      </div>
 
       <!-- Abstract -->
       <div class="form-group">
         <label for="abstract">
-          Abstract
-          <span>*</span>
+          Abstract <span>*</span>
         </label>
+
         <textarea
           id="abstract"
           name="abstract"
           rows="7"
-          placeholder="Enter the publication abstract"
           [(ngModel)]="abstract"
+          placeholder="Enter the publication abstract"
+          [class.invalid-field]="fieldErrors['abstract']"
+          [attr.aria-invalid]="!!fieldErrors['abstract']"
         ></textarea>
-      </div>
 
+        <small
+          *ngIf="fieldErrors['abstract']"
+          class="field-error"
+        >
+          {{ fieldErrors['abstract'] }}
+        </small>
+      </div>
 
       <!-- Authors -->
       <div class="form-group">
         <label>
-          Authors
-          <span>*</span>
+          Authors <span>*</span>
         </label>
-        <div class="author-row">
+
+        <div
+          class="author-row"
+          *ngFor="let author of authors; let i = index; trackBy: trackByIndex"
+        >
           <input
-            id="author"
             type="text"
-            name="author"
-            maxlength="50"
-            placeholder="Enter author name"
-            [(ngModel)]="authorInput"
-            (keydown.enter)="$event.preventDefault(); addAuthor()"
-          >
+            [name]="'author' + i"
+            [(ngModel)]="authors[i]"
+            [placeholder]="'Enter author ' + (i + 1) + ' name'"
+            [class.invalid-field]="!!fieldErrors['authors']"
+            [attr.aria-label]="'Author ' + (i + 1)"
+          />
 
           <button
+            *ngIf="authors.length > 1"
             type="button"
-            class="add-author-button"
-            (click)="addAuthor()"
+            class="cancel-button"
+            (click)="removeAuthor(i)"
+            [disabled]="isSubmitting"
           >
-            + Add Author
+            Remove
           </button>
         </div>
-        @if (authors().length > 0) {
-          <ul class="author-list">
-              @for (author of authors(); track author; let i = $index) {
-                <li>
-                  <span>{{ author }}</span>
-                  <button
-                    type="button"
-                    (click)="removeAuthor(i)"
-                  >
-                    X
-                  </button>
-                </li>
-              }
-          </ul>
-        }
-      </div>
 
+        <small
+          *ngIf="fieldErrors['authors']"
+          class="field-error"
+          role="alert"
+        >
+          {{ fieldErrors['authors'] }}
+        </small>
+
+        <button
+          type="button"
+          class="add-author-button"
+          (click)="addAuthor()"
+          [disabled]="isSubmitting"
+        >
+          + Add Author
+        </button>
+      </div>
 
       <!-- Keywords -->
       <div class="form-group">
         <label for="keywords">
-          Domain Keywords
-          <span>*</span>
+          Domain Keywords <span>*</span>
         </label>
+
         <input
           id="keywords"
-          type="text"
           name="keywords"
-          placeholder="e.g. Artificial Intelligence, Education, Data Science"
+          type="text"
           [(ngModel)]="keywords"
-        >
+          placeholder="e.g. Artificial Intelligence, Education, Data Science"
+          [class.invalid-field]="fieldErrors['keywords']"
+          [attr.aria-invalid]="!!fieldErrors['keywords']"
+        />
 
-        <small>
-          Separate multiple keywords with commas.
+        <small>Separate multiple keywords with commas.</small>
+
+        <small
+          *ngIf="fieldErrors['keywords']"
+          class="field-error"
+        >
+          {{ fieldErrors['keywords'] }}
         </small>
       </div>
 
-
-      <!-- File Upload -->
+      <!-- Student ID for development testing -->
       <div class="form-group">
-        <label>
-          Publication Document
-          <span>*</span>
+        <label for="submittedBy">
+          Student ID <span>*</span>
         </label>
+
+        <input
+          id="submittedBy"
+          name="submittedBy"
+          type="text"
+          [(ngModel)]="submittedBy"
+          placeholder="e.g. STU000001"
+          [class.invalid-field]="fieldErrors['submittedBy']"
+          [attr.aria-invalid]="!!fieldErrors['submittedBy']"
+        />
+
+        <small class="help-text">
+          Temporary testing field. Authentication will supply this automatically later.
+        </small>
+
+        <small
+          *ngIf="fieldErrors['submittedBy']"
+          class="field-error"
+        >
+          {{ fieldErrors['submittedBy'] }}
+        </small>
+      </div>
+
+      <!-- Publication PDF -->
+      <div class="form-group">
+        <label for="publicationFile">
+          Publication Document <span>*</span>
+        </label>
+
         <div class="file-upload">
           <input
-            #fileInput
             id="publicationFile"
+            name="publicationFile"
             type="file"
             accept=".pdf,application/pdf"
             (change)="onFileSelected($event)"
-          >
+            [class.invalid-field]="fieldErrors['publicationFile']"
+            [attr.aria-invalid]="!!fieldErrors['publicationFile']"
+          />
 
           <label
             for="publicationFile"
             class="file-label"
           >
             <span class="upload-icon">↑</span>
-
-            <strong>{{ file()?.name ?? 'Choose PDF File' }}</strong>
-
-            <small>
-              PDF format only • Maximum size: 100 MB
-            </small>
+            <strong>Choose PDF File</strong>
+            <small>PDF format only • Maximum size: 100 MB</small>
           </label>
         </div>
+
+        <small
+          *ngIf="selectedFile"
+          class="help-text"
+        >
+          Selected file: {{ selectedFile.name }}
+        </small>
+
+        <small
+          *ngIf="fieldErrors['publicationFile']"
+          class="field-error"
+          role="alert"
+        >
+          {{ fieldErrors['publicationFile'] }}
+        </small>
       </div>
 
-      @if (errorMessage()) {
-        <p class="message error">{{ errorMessage() }}</p>
-      }
-
-      @if (successMessage()) {
-        <p class="message success">{{ successMessage() }}</p>
-      }
-
-      <!-- Form Actions -->
+      <!-- Form actions -->
       <div class="form-actions">
-
         <button
           type="button"
           class="cancel-button"
-          routerLink="/dashboard"
+          (click)="cancel()"
+          [disabled]="isSubmitting"
         >
           Cancel
         </button>
 
         <button
-          type="button"
+          type="submit"
           class="submit-button"
-          /* When submitting is true, this button is disbled */
-          [disabled]="submitting()"
-          (click)="submit()"
+          [disabled]="isSubmitting"
         >
-          {{ submitting() ? 'Submitting...' : 'Submit Publication' }}
+          {{ isSubmitting ? 'Submitting...' : 'Submit Publication' }}
         </button>
-
       </div>
-
-    </section>
-
+    </form>
   </main>
-
 </div>
