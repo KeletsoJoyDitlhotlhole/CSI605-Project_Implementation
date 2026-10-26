@@ -356,3 +356,126 @@ exports.createReviewComment = async (req, res) => {
         return res.status(500).json({ message: "Failed to save review comment." });
     }
 }
+
+/**
+ * Get a single publication.
+ * 
+ * The publication returned should be an approved publication. Not a those 
+ * that have been rejected, pending or cancelled.
+ * 
+ * @param {obj} req Request object
+ * @param {obj} res Response object
+ * @returns 
+ */
+exports.getApprovedPublication = async (req, res) => {
+    const sql = `
+        SELECT
+            pub.publication_id,
+            pub.publication_reference,
+            pub.title,
+            pub.abstract,
+            pub.keywords,
+            pub.submitted_at,
+            COALESCE((SELECT json_agg(a.publication_author ORDER BY a.author_order)
+                FROM public."Publication Author" a
+                WHERE a.publication_id = pub.publication_id), '[]'::json) AS authors
+        FROM public."Publications" pub
+        WHERE pub.publication_id = $1 AND pub.status = 'approved'
+    `;
+
+    try {
+        const result = await db.query(
+            sql,
+            [req.params.id]
+        );
+
+        if (result.rowCount === 0)
+            return res.status(404).json({ message: "Publication not found" });
+
+        return res.status(200).json(result.rows[0]);
+    }
+
+    catch (err) {
+        console.error({ error: err.message });
+        return res.status(500).json({ message: "Failed to load publication"});
+    }
+}
+
+exports.searchPublication = async (req, res) => {
+
+    // the search query or keywords, or author, or just words 
+    const queryString = (req.query.q ?? "").trim();
+
+    // prepare for pagination
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 30);
+    const offset = (page - 1) * limit;
+
+    // empty string: return nothing
+    if (!queryString) {
+        return res.status(200).json({
+            total: 0,
+            page,
+            limit,
+            totalPages: 1,
+            publications: []
+        });
+    }
+
+    // never put req.query.sort straight into SQL
+    const sortMap = {
+        newest: "pub.submitted_at DESC",
+        oldest: "pub.submitted_at ASC",
+        title: "pub.title ASC"
+    };
+    const orderBy = sortMap[req.query.sort] ?? sortMap.newest;
+
+    // match the text anywhere in title, abstract, keywords or author names
+    const like = `%${queryString}%`;
+    const where = `
+        pub.status = 'approved'
+        AND ($1 = '' OR pub.title ILIKE $2 OR pub.abstract ILIKE $2 OR pub.keywords ILIKE $2
+             OR EXISTS (SELECT 1 FROM public."Publication Author" a
+                        WHERE a.publication_id = pub.publication_id
+                          AND a.publication_author ILIKE $2))
+    `;
+
+    const sqlList = `
+        SELECT
+            pub.publication_id,
+            pub.publication_reference,
+            pub.title,
+            pub.abstract,
+            pub.keywords,
+            pub.status,
+            pub.submitted_at,
+            COALESCE((SELECT json_agg(a.publication_author ORDER BY a.author_order)
+                      FROM public."Publication Author" a
+                      WHERE a.publication_id = pub.publication_id), '[]'::json) AS authors
+        FROM public."Publications" pub
+        WHERE ${where}
+        ORDER BY ${orderBy}
+        LIMIT $3 OFFSET $4
+    `;
+
+    const sqlCount = `SELECT COUNT(*)::int AS total FROM public."Publications" pub WHERE ${where}`;
+
+    try {
+        const [list, count] = await Promise.all([
+            db.query(sqlList, [queryString, like, limit, offset]),
+            db.query(sqlCount, [queryString, like])
+        ]);
+ 
+        const total = count.rows[0].total;
+        return res.status(200).json({
+            total,
+            page,
+            limit,
+            totalPages: Math.max(Math.ceil(total / limit), 1),
+            publications: list.rows
+        });
+    } catch (err) {
+        console.error({ error: err.message });
+        return res.status(500).json({ message: "Search failed to find publication" });
+    }
+}

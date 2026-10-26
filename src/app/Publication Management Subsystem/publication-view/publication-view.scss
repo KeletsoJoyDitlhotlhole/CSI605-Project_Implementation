@@ -1,0 +1,292 @@
+/* =====================================================
+   UNIVERSITY OF BOTSWANA - PUBLICATION VIEW PAGE
+   ===================================================== */
+
+$ub-maroon: #800020;
+$ub-maroon-light: #f7edef;
+
+$white: #ffffff;
+$background: #f6f6f6;
+$border: #e2e2e2;
+
+$text-dark: #171717;
+$text-light: #707070;
+
+.view-page {
+  min-height: 100vh;
+  background: $background;
+  color: $text-dark;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+/* ---------- Header ---------- */
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  height: 80px;
+  padding: 0 30px;
+
+  background: $ub-maroon;
+  color: $white;
+  box-sizing: border-box;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ub-logo {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.header-title h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.header-title p {
+  margin: 3px 0 0;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.back-button {
+  padding: 9px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  color: $white;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ---------- Content ---------- */
+
+.page-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 36px 30px 60px;
+  box-sizing: border-box;
+}
+
+.publication-detail {
+  padding: 30px 34px 36px;
+  background: $white;
+  border: 1px solid $border;
+  border-top: 4px solid $ub-maroon;
+  border-radius: 10px;
+}
+
+.card-top {
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid $border;
+}
+
+.reference {
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.detail-title {
+  margin: 0 0 14px;
+  font-size: 28px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin: 0 0 14px;
+  color: $text-light;
+  font-size: 13px;
+}
+
+.meta strong {
+  color: $text-dark;
+}
+
+.keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.keywords li {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: $ub-maroon-light;
+  color: $ub-maroon;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ---------- Sections ---------- */
+
+.detail-section {
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid $border;
+}
+
+.detail-section h4 {
+  margin: 0 0 10px;
+  color: $ub-maroon;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.full-abstract {
+  margin: 0;
+  color: #4a4a4a;
+  font-size: 15px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.document-link {
+  color: $ub-maroon;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.document-link:hover {
+  text-decoration: underline;
+}
+
+.err {
+  margin: 8px 0 0;
+  color: #b00020;
+  font-size: 13px;
+}
+
+/* Collapsible PDF panel: hidden until the .open class is added */
+.pdf-viewer {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+
+  &.open {
+    max-height: 85vh;
+    opacity: 1;
+    margin-top: 16px;
+  }
+}
+
+.pdf-viewer-inner {
+  border: 1px solid $border;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pdf-viewer iframe {
+  display: block;
+  width: 100%;
+  height: 80vh;
+  min-height: 480px;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdf-viewer {
+    transition: none;
+  }
+}
+
+/* ---------- States ---------- */
+
+.state-text {
+  padding: 30px 0;
+  color: $text-light;
+  font-size: 14px;
+}
+
+.empty-card {
+  padding: 40px 24px;
+  text-align: center;
+  background: $white;
+  border: 1px solid $border;
+  border-radius: 10px;
+}
+
+.empty-card h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.empty-card p {
+  margin: 0 0 16px;
+  color: $text-light;
+  font-size: 14px;
+}
+
+.empty-action {
+  display: inline-block;
+  padding: 10px 20px;
+  border-radius: 6px;
+  background: $ub-maroon;
+  color: $white;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 768px) {
+  .page-header {
+    height: 70px;
+    padding: 0 16px;
+  }
+
+  .ub-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .page-content {
+    padding: 22px 14px 45px;
+  }
+
+  .publication-detail {
+    padding: 22px 18px 28px;
+  }
+
+  .detail-title {
+    font-size: 23px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-title p {
+    display: none;
+  }
+}

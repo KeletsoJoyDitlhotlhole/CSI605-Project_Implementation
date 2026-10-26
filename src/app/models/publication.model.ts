@@ -69,3 +69,8 @@ export interface CommentBody {
     title: string;
     details: string;
 }
+
+export interface TextSegment {
+    text: string;
+    match: boolean;
+}
