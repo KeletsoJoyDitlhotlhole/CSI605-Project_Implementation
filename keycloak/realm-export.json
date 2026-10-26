@@ -1,0 +1,155 @@
+{
+  "realm": "publications",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "student",
+        "description": "Can submit publications and view own submissions"
+      },
+      {
+        "name": "reviewer",
+        "description": "Can review publications, approve/reject, and add comments"
+      },
+      {
+        "name": "admin",
+        "description": "Full access to all system features"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "publications-api",
+      "name": "Publications Management API",
+      "description": "Backend API client for the Publications Management System",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:4200/*",
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200",
+        "http://localhost:3000"
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email",
+        "microprofile-jwt"
+      ],
+      "protocolMappers": [
+        {
+          "name": "realm-roles-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "realm_roles",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "user-id-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "user_id",
+            "user.attribute": "user_id",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "student1",
+      "email": "student1@ub.ac.bw",
+      "firstName": "Tokyo",
+      "lastName": "Nakamura",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "user_id": ["U0000001"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "student",
+        "default-roles-publications"
+      ]
+    },
+    {
+      "username": "reviewer1",
+      "email": "reviewer1@ub.ac.bw",
+      "firstName": "Keletso",
+      "lastName": "Ditlhotlhole",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "user_id": ["U0000002"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "reviewer",
+        "default-roles-publications"
+      ]
+    },
+    {
+      "username": "admin1",
+      "email": "admin1@ub.ac.bw",
+      "firstName": "Admin",
+      "lastName": "User",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "user_id": ["U0000003"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin",
+        "default-roles-publications"
+      ]
+    }
+  ]
+}

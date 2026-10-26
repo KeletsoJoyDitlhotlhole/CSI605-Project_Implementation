@@ -3,22 +3,28 @@
 const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/upload.middleware");
+const authenticate = require("../middleware/auth.middleware");
+const authorize = require("../middleware/role.middleware");
 const publicationsController = require("../controllers/publication.controller");
 
-router.get("/", publicationsController.getAllPublcations);
+// ─── All routes below require a valid Keycloak JWT ─────────────────
+router.use(authenticate);
+
+// Get all publications (any authenticated user)
+router.get("/", authorize("student", "reviewer", "admin"), publicationsController.getAllPublcations);
 
 // Get review list
 // publications that have to be reviewed
-router.get("/review", publicationsController.getReviewList);
+router.get("/review", authorize("reviewer", "admin"), publicationsController.getReviewList);
 
 // get the publication file
-router.get("/review/:id/file", publicationsController.getPubFile);
+router.get("/review/:id/file", authorize("reviewer", "admin"), publicationsController.getPubFile);
 
 // get all registered comments for a particular publication
-router.get("/review/:id/comments", publicationsController.getAllReviewComments);
+router.get("/review/:id/comments", authorize("reviewer", "admin"), publicationsController.getAllReviewComments);
 
 // upload, create, register a review comment for a particular publication
-router.post("/review/:id/comments", publicationsController.createReviewComment);
+router.post("/review/:id/comments", authorize("reviewer", "admin"), publicationsController.createReviewComment);
 
 // Upload only one file found in form field document or publicationFile
 const uploadDocumentOrFile = (req, res, next) => {
@@ -35,9 +41,10 @@ const uploadDocumentOrFile = (req, res, next) => {
   });
 };
 
-router.post("/", uploadDocumentOrFile, publicationsController.createPublication);
+// Submit a publication (students and admins)
+router.post("/", authorize("student", "admin"), uploadDocumentOrFile, publicationsController.createPublication);
 
-// affect pub status: approve|reject
-router.patch("/:id/status", publicationsController.updatePubStatus);
+// affect pub status: approve|reject (reviewers and admins)
+router.patch("/:id/status", authorize("reviewer", "admin"), publicationsController.updatePubStatus);
 
 module.exports = router;

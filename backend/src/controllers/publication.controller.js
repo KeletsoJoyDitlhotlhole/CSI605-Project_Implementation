@@ -164,8 +164,8 @@ exports.createPublication = async (req, res) => {
         return res.status(400).json({error: "Title (max 150) or an author name (max 50) is too long"});
     }
 
-    // server side data
-    const username = "U0000001";
+    // Authenticated user from Keycloak JWT (set by auth.middleware.js)
+    const username = req.user.id;
     const suffix = crypto.randomBytes(6).toString("hex");
     const publicationId = `PUB-${suffix}`;
     const publicationRef = `REF-${new Date().getFullYear()}-${suffix}`;
@@ -340,8 +340,8 @@ exports.createReviewComment = async (req, res) => {
             id, title, details, created_at as "createdAt", reviewer_id as "reviewerId"
         `;
 
-    // placeholder value, remove or comment out after implementing authentication
-    const reviewerId = 1;
+    // Authenticated reviewer from Keycloak JWT (set by auth.middleware.js)
+    const reviewerId = req.user.id;
 
     try {
         const result = await db.query(
