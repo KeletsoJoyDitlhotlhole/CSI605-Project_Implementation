@@ -1,0 +1,113 @@
+export interface Publication {
+    title: string;
+    abstract: string;
+    keywords: string;
+    status: string;
+    created_at: string;
+    submitted_at: string;
+    authors: string[];
+    file_id: string;
+    original_filename: string;
+    stored_filename: string;
+    submitter_firstname: string;
+    submitter_surname: string;
+    submitter_email: string;
+}
+
+export interface APIResponse {
+    total: number;
+    publications: Publication[];
+}
+
+export interface SubmitResponse {
+    msg: string,
+    publication_id: string,
+    publication_reference: string
+}
+
+export interface ReviewPublication {
+  publication_id: string;
+  publication_reference: string;
+  title: string;
+  abstract: string;
+  keywords: string;
+  publication_type: string;
+  status: string;
+  created_at: string;
+  submitted_at: string;
+  authors: string[];
+  file_id: string | null;
+  original_filename: string | null;
+  submitter_id: string;
+  submitter_firstname: string;
+  submitter_surname: string;
+  submitter_email: string;
+  lecturer_id: string | null;
+  lecturer_firstname: string | null;
+  lecturer_surname: string | null;
+  lecturer_email: string | null;
+}
+
+export interface ReviewResponse {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    publications: ReviewPublication[];
+}
+
+export type PubStatus = "approved" | "rejected";
+export interface PubStatusResponse {
+    publication_id: string;
+    status: string;
+    updated_at: string;
+}
+
+export interface ReviewComment {
+    id: number;
+    title: string;
+    details: string;
+    createdAt: string;
+    reviewerId?: number;
+}
+export interface CommentBody {
+    title: string;
+    details: string;
+}
+
+export interface StatusHistory {
+  previous_status: string | null;
+  new_status: string;
+  changed_by: string;
+  changed_at: string;
+  comments: string | null;
+}
+
+export interface ReviewDetail extends ReviewPublication {
+  history: StatusHistory[];
+}
+
+export interface TextSegment {
+  text: string;
+  match: boolean;
+}
+
+export interface PublicPublication {
+  publication_id: string;
+  publication_reference: string;
+  title: string;
+  abstract: string;
+  keywords: string;
+  publication_type: string;
+  status: string;
+  submitted_at: string;
+  authors: string[];
+}
+
+export interface SearchResponse {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  publications: PublicPublication[];
+}

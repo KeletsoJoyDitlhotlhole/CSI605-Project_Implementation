@@ -1,0 +1,95 @@
+<!-- /home.html -->
+
+<div class="home">
+
+  <header class="site-header">
+    <div class="brand">
+      <img src="/assets/images/ub%20logo.png" alt="University of Botswana" class="ub-logo">
+      <div class="brand-text">
+        <span>University of Botswana</span>
+        <small>Publication Management</small>
+      </div>
+    </div>
+
+    <div>
+      <a class="back-button" routerLink="/dashboard">Dashboard</a>
+    </div>
+  </header>
+
+  <main class="home-content">
+
+    <!-- Hero / search -->
+    <section class="hero">
+      <span class="eyebrow">UNIVERSITY OF BOTSWANA</span>
+      <h1>Welcome to the UB Publication Management System</h1>
+      <p>Browse through our many publications covering many scientific disciplines.</p>
+
+      <form class="search-bar" role="search" (submit)="$event.preventDefault(); onSearch()">
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input
+          type="search"
+          name="q"
+          placeholder="Search our repository for publications"
+          aria-label="Search publications"
+          [value]="query()"
+          (input)="onQueryInput($event)" />
+        <button type="submit">Search</button>
+      </form>
+
+      <small class="search-hint">Search by title, author, department or keyword</small>
+    </section>
+
+    <!-- Featured publications -->
+    <section class="featured">
+      <div class="section-heading">
+        <h2>Featured Publications</h2>
+        <p>A selection of recently approved research from the repository.</p>
+      </div>
+
+      @if (loading()) {
+        <p class="state-text">Loading featured publications…</p>
+      } @else if (error()) {
+        <p class="state-text err" role="alert">{{ error() }}</p>
+      } @else if (!featured().length) {
+        <p class="state-text">No featured publications yet. Please check back soon.</p>
+      } @else {
+        <div class="featured-grid">
+          @for (pub of featured(); track pub.publication_id; let i = $index) {
+            <a class="pub-card" [routerLink]="['/publications', pub.publication_id]">
+
+              <div class="card-header">
+                <div class="icon-container">
+                  <span class="icon">❝</span>
+                </div>
+                <span class="card-number">{{ i + 1 < 10 ? '0' + (i + 1) : i + 1 }}</span>
+              </div>
+
+              <div class="card-content">
+                <h3>{{ pub.title }}</h3>
+
+                <p class="authors">{{ pub.authors?.join(', ') }}</p>
+
+                <p class="abstract">{{ pub.abstract }}</p>
+
+                @if (pub.keywords) {
+                  <ul class="keywords">
+                    @for (keyword of pub.keywords.split(',').slice(0, 3); track keyword) {
+                      <li>{{ keyword.trim() }}</li>
+                    }
+                  </ul>
+                }
+              </div>
+
+              <div class="card-footer">
+                <span>View publication</span>
+                <span class="arrow">→</span>
+              </div>
+
+            </a>
+          }
+        </div>
+      }
+    </section>
+
+  </main>
+</div>

@@ -1,0 +1,450 @@
+/* =====================================================
+   UNIVERSITY OF BOTSWANA - SEARCH PUBLICATIONS PAGE
+   ===================================================== */
+
+$ub-maroon: #800020;
+$ub-maroon-dark: #5c0018;
+$ub-maroon-light: #f7edef;
+
+$white: #ffffff;
+$background: #f6f6f6;
+$border: #e2e2e2;
+
+$text-dark: #171717;
+$text-light: #707070;
+
+.search-page {
+  min-height: 100vh;
+  background: $background;
+  color: $text-dark;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+/* ---------- Header ---------- */
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  height: 80px;
+  padding: 0 30px;
+
+  background: $ub-maroon;
+  color: $white;
+  box-sizing: border-box;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ub-logo {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.brand-text span {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.brand-text small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.menu-button {
+  border: 0;
+  background: transparent;
+  color: $white;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+/* ---------- Layout ---------- */
+
+.page-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 36px 30px 60px;
+  box-sizing: border-box;
+}
+
+/* ---------- Search bar ---------- */
+
+.search-bar {
+  display: flex;
+  align-items: center;
+
+  padding: 8px 8px 8px 22px;
+
+  background: $white;
+  border: 2px solid $border;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-bar:focus-within {
+  border-color: $ub-maroon;
+  box-shadow: 0 6px 22px rgba(128, 0, 32, 0.15);
+}
+
+.search-icon {
+  margin-right: 12px;
+  color: $ub-maroon;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.search-bar input {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 8px;
+
+  border: 0;
+  outline: none;
+  background: transparent;
+
+  font: inherit;
+  font-size: 17px;
+  color: $text-dark;
+}
+
+.search-bar button {
+  padding: 14px 30px;
+
+  border: 0;
+  border-radius: 8px;
+  background: $ub-maroon;
+  color: $white;
+
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+}
+
+.search-bar button:hover {
+  background: $ub-maroon-dark;
+}
+
+/* ---------- Summary row ---------- */
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  margin: 26px 2px 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid $border;
+}
+
+.summary {
+  margin: 0;
+  color: $text-light;
+  font-size: 14px;
+}
+
+.sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: $text-light;
+  font-size: 13px;
+}
+
+.sort select {
+  padding: 7px 10px;
+  border: 1px solid $border;
+  border-radius: 6px;
+  background: $white;
+  font: inherit;
+  font-size: 13px;
+  color: $text-dark;
+  cursor: pointer;
+}
+
+/* ---------- Result cards ---------- */
+
+.results {
+  display: grid;
+  gap: 14px;
+}
+
+.pub-card {
+  position: relative;
+
+  padding: 22px 24px;
+
+  background: $white;
+  border: 1px solid $border;
+  border-radius: 10px;
+  overflow: hidden;
+  box-sizing: border-box;
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.pub-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: $ub-maroon;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+.pub-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(128, 0, 32, 0.35);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+.pub-card:hover::before {
+  transform: scaleX(1);
+}
+
+.pub-card:focus {
+  outline: none;
+}
+
+.pub-card:focus-visible {
+  outline: 3px solid rgba(128, 0, 32, 0.25);
+  outline-offset: 3px;
+}
+
+a.pub-card {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.pub-title {
+  margin: 0 0 6px;
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.authors {
+  margin: 0 0 10px;
+  color: $ub-maroon;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.abstract {
+  margin: 0 0 16px;
+  color: $text-light;
+  font-size: 14px;
+  line-height: 1.65;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+mark {
+  padding: 0 2px;
+  border-radius: 2px;
+  background: #fff3b0;
+  color: inherit;
+}
+
+.card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.keywords li {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: $ub-maroon-light;
+  color: $ub-maroon;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.view-link {
+  margin-left: auto;
+  color: $ub-maroon;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.arrow {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.pub-card:hover .arrow {
+  transform: translateX(5px);
+}
+
+/* ---------- States ---------- */
+
+.state-text {
+  padding: 30px 0;
+  color: $text-light;
+  font-size: 14px;
+}
+
+.state-text.err {
+  color: #b00020;
+}
+
+.empty-card {
+  padding: 40px 24px;
+  text-align: center;
+  background: $white;
+  border: 1px solid $border;
+  border-radius: 10px;
+}
+
+.empty-card h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.empty-card p {
+  margin: 0;
+  color: $text-light;
+  font-size: 14px;
+}
+
+/* ---------- Pagination ---------- */
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 28px;
+}
+
+.pagination button {
+  min-width: 38px;
+  padding: 8px 0;
+
+  border: 1px solid $border;
+  border-radius: 8px;
+  background: $white;
+  color: $text-light;
+
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.pagination button:hover:not(:disabled) {
+  border-color: $ub-maroon;
+  color: $ub-maroon;
+}
+
+.pagination button.active {
+  background: $ub-maroon;
+  border-color: $ub-maroon;
+  color: $white;
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 768px) {
+  .site-header {
+    height: 70px;
+    padding: 0 20px;
+  }
+
+  .ub-logo {
+    width: 52px;
+    height: 52px;
+  }
+
+  .page-content {
+    padding: 26px 16px 45px;
+  }
+}
+
+@media (max-width: 560px) {
+  .search-bar {
+    flex-wrap: wrap;
+    padding: 10px;
+  }
+
+  .search-icon {
+    display: none;
+  }
+
+  .search-bar input {
+    flex-basis: 100%;
+    font-size: 16px;
+  }
+
+  .search-bar button {
+    width: 100%;
+    margin-top: 6px;
+  }
+
+  .summary-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .pub-card {
+    padding: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pub-card,
+  .pub-card::before,
+  .arrow,
+  .search-bar {
+    transition: none;
+  }
+}

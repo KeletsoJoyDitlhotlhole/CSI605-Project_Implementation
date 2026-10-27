@@ -1,0 +1,122 @@
+<!-- /search-publications.html -->
+
+<div class="search-page">
+
+  <header class="site-header">
+    <a class="brand" routerLink="/">
+      <img src="/assets/images/ub%20logo.png" alt="University of Botswana" class="ub-logo">
+      <div class="brand-text">
+        <span>University of Botswana</span>
+        <small>Publication Management</small>
+      </div>
+    </a>
+
+    <button class="menu-button" type="button" aria-label="Open navigation menu">☰</button>
+  </header>
+
+  <main class="page-content">
+
+    <!-- Search bar -->
+    <form class="search-bar" role="search" (submit)="$event.preventDefault(); onSearch()">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <input
+        type="search"
+        name="q"
+        placeholder="Search our repository for publications"
+        aria-label="Search publications"
+        [value]="searchText()"
+        (input)="onSearchInput($event)" />
+      <button type="submit">Search</button>
+    </form>
+
+    <!-- Result summary + sort -->
+    <div class="summary-row">
+      <p class="summary">
+        @if (loading()) {
+          Searching…
+        } @else if (query()) {
+          {{ total() }} {{ total() === 1 ? 'result' : 'results' }} for "{{ query() }}"
+        } @else {
+          Enter a search term to find publications
+        }
+      </p>
+
+      <label class="sort">
+        Sort by
+        <select [value]="sort()" (change)="onSortChange($event)">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="title">Title A–Z</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- Results -->
+    @if (error()) {
+      <p class="state-text err" role="alert">{{ error() }}</p>
+    } @else if (!query().trim()) {
+      <div class="empty-card">
+        <h3>Search the repository</h3>
+        <p>Type a title, author, department or keyword above.</p>
+      </div>
+    } @else if (!loading() && !results().length) {
+      <div class="empty-card">
+        <h3>No publications found</h3>
+        <p>Try a different title, author, department or keyword.</p>
+      </div>
+    } @else {
+      <div class="results">
+        @for (pub of results(); track pub.publication_id) {
+          <a class="pub-card" [routerLink]="['/publications', pub.publication_id]" [state]="{ publication: pub }">
+
+            <h3 class="pub-title">
+              @for (seg of highlight(pub.title); track $index) {
+                @if (seg.match) { <mark>{{ seg.text }}</mark> } @else { {{ seg.text }} }
+              }
+            </h3>
+
+            <p class="authors">{{ pub.authors?.join(', ') }}</p>
+
+            <p class="abstract">
+              @for (seg of highlight(pub.abstract); track $index) {
+                @if (seg.match) { <mark>{{ seg.text }}</mark> } @else { {{ seg.text }} }
+              }
+            </p>
+
+            <div class="card-bottom">
+              @if (pub.keywords) {
+                <ul class="keywords">
+                  @for (keyword of pub.keywords.split(',').slice(0, 4); track keyword) {
+                    <li>{{ keyword.trim() }}</li>
+                  }
+                </ul>
+              }
+              <span class="view-link">View publication <span class="arrow">→</span></span>
+            </div>
+
+          </a>
+        }
+      </div>
+    }
+
+    <!-- Pagination -->
+    @if (totalPages() > 1) {
+      <nav class="pagination" aria-label="Search results pages">
+        <button type="button" (click)="goToPage(page() - 1)" [disabled]="page() === 1" aria-label="Previous page">‹</button>
+
+        @for (p of pages(); track p) {
+          <button
+            type="button"
+            [class.active]="p === page()"
+            [attr.aria-current]="p === page() ? 'page' : null"
+            (click)="goToPage(p)">
+            {{ p }}
+          </button>
+        }
+
+        <button type="button" (click)="goToPage(page() + 1)" [disabled]="page() === totalPages()" aria-label="Next page">›</button>
+      </nav>
+    }
+
+  </main>
+</div>

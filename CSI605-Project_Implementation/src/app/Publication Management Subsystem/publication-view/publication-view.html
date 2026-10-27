@@ -1,0 +1,76 @@
+<!-- /publication-view.html -->
+
+<div class="view-page">
+
+  <header class="page-header">
+    <a class="header-left" routerLink="/">
+      <img src="/assets/images/ub%20logo.png" alt="University of Botswana" class="ub-logo">
+      <div class="header-title">
+        <h1>University of Botswana</h1>
+        <p>Publication Management System</p>
+      </div>
+    </a>
+    <a class="back-button" routerLink="/publications">Back to Publications</a>
+  </header>
+
+  <main class="page-content">
+
+    @if (loading()) {
+      <p class="state-text">Loading publication…</p>
+    } @else if (error()) {
+      <div class="empty-card">
+        <h3>Publication unavailable</h3>
+        <p>{{ error() }}</p>
+        <a class="empty-action" routerLink="/publications">Back to Publications</a>
+      </div>
+    } @else if (pub(); as p) {
+
+      <div class="publication-detail">
+
+        <div class="card-top">
+          <span class="reference">{{ p.publication_reference }}</span>
+        </div>
+
+        <h2 class="detail-title">{{ p.title }}</h2>
+
+        <p class="meta">
+          <span><strong>Authors:</strong> {{ p.authors?.join(', ') }}</span>
+          <span><strong>Published:</strong> {{ p.submitted_at | date: 'longDate' }}</span>
+        </p>
+
+        @if (p.keywords) {
+          <ul class="keywords">
+            @for (keyword of p.keywords.split(','); track keyword) {
+              <li>{{ keyword.trim() }}</li>
+            }
+          </ul>
+        }
+
+        <section class="detail-section">
+          <h4>Abstract</h4>
+          <p class="full-abstract">{{ p.abstract }}</p>
+        </section>
+
+        <section class="detail-section">
+          <h4>Document</h4>
+
+          <a class="document-link" href="#" (click)="$event.preventDefault(); onShowPub()">
+            {{ pdfLoading() ? 'Loading publication …' : showPdf() ? 'Hide publication' : 'Show publication' }}
+          </a>
+
+          @if (pdfError()) { <p class="err">{{ pdfError() }}</p> }
+
+          <div class="pdf-viewer" [class.open]="showPdf()">
+            <div class="pdf-viewer-inner">
+              @if (pdfUrl()) {
+                <iframe [src]="pdfUrl()" title="Publication file"></iframe>
+              }
+            </div>
+          </div>
+        </section>
+
+      </div>
+    }
+
+  </main>
+</div>
