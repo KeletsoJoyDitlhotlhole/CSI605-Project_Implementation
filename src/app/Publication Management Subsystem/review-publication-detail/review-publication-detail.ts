@@ -56,6 +56,7 @@ export class ReviewPublicationDetail implements OnInit, OnDestroy {
   status = signal('');
   message = signal('');
   error = signal('');
+  isLoadingPub = signal(true);
 
   constructor(
     private route: ActivatedRoute,
@@ -66,12 +67,28 @@ export class ReviewPublicationDetail implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.publicationId = this.route.snapshot.paramMap.get("id");
-    // if (history.state && history.state.publication) {
-    //   this.pub = history.state.publication;
-    // }
     if (isPlatformBrowser(this.platformId)) {
-      this.pub = history.state?.publication ?? null;
-      this.status.set(this.pub?.status ?? '');
+      const statePub = history.state?.publication;
+      if (statePub) {
+        this.pub = statePub;
+        this.status.set(this.pub.status ?? '');
+        this.isLoadingPub.set(false);
+      } else if (this.publicationId) {
+        this.isLoadingPub.set(true);
+        this.publicationService.fetchPublicationById(this.publicationId).subscribe({
+          next: p => {
+            this.pub = p;
+            this.status.set(p.status ?? '');
+            this.isLoadingPub.set(false);
+          },
+          error: (err) => {
+            console.error("Failed to load publication details by ID", err);
+            this.isLoadingPub.set(false);
+          }
+        });
+      } else {
+        this.isLoadingPub.set(false);
+      }
       this.loadComments();
     }
   }
@@ -157,7 +174,14 @@ export class ReviewPublicationDetail implements OnInit, OnDestroy {
 
     this.pdfLoading.set(true);
     this.pdfError.set('');
-    this.publicationService.getPubFile(this.pub.publication_id)
+    const targetId = this.publicationId || this.pub?.publication_id;
+    if (!targetId) {
+      this.pdfError.set("Publication ID is missing");
+      this.pdfLoading.set(false);
+      return;
+    }
+
+    this.publicationService.getPubFile(targetId)
       .subscribe({
         next: blob => {
           this.objectUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
@@ -174,10 +198,10 @@ export class ReviewPublicationDetail implements OnInit, OnDestroy {
   }
 
   onApprove(): void {
-    this.onChangeStatus('approved');
+    this.onChangeStatus('Approved' as PubStatus);
   }
   onReject(): void {
-    this.onChangeStatus('rejected');
+    this.onChangeStatus('Rejected' as PubStatus);
   }
 
   onChangeStatus(status: PubStatus):void {

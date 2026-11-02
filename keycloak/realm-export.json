@@ -15,6 +15,10 @@
         "description": "Can submit publications and view own submissions"
       },
       {
+        "name": "lecturer",
+        "description": "Can submit publications, review publications, approve/reject, and add comments"
+      },
+      {
         "name": "reviewer",
         "description": "Can review publications, approve/reject, and add comments"
       },
@@ -108,6 +112,29 @@
       ]
     },
     {
+      "username": "lecturer1",
+      "email": "lecturer1@ub.ac.bw",
+      "firstName": "Keletso",
+      "lastName": "Ditlhotlhole",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "user_id": ["U0000002"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "lecturer",
+        "reviewer",
+        "default-roles-publications"
+      ]
+    },
+    {
       "username": "reviewer1",
       "email": "reviewer1@ub.ac.bw",
       "firstName": "Keletso",
@@ -125,6 +152,7 @@
         }
       ],
       "realmRoles": [
+        "lecturer",
         "reviewer",
         "default-roles-publications"
       ]

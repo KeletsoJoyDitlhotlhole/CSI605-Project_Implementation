@@ -15,7 +15,12 @@
 
   <main class="page-content">
 
-    @if (pub) {
+    @if (isLoadingPub()) {
+      <div class="empty-card" style="text-align: center;">
+        <h3>Loading Publication Details...</h3>
+        <p>Please wait while we load the publication information.</p>
+      </div>
+    } @else if (pub) {
       <div class="page-heading">
         <h2>Review Publication</h2>
         <p>Review the full details below and make a decision.</p>
@@ -25,7 +30,7 @@
 
         <div class="card-top">
           <span class="reference">{{ pub.publication_reference }}</span>
-          <span class="status-badge" [attr.data-status]="status()">{{ status() }}</span>
+          <span class="status-badge" [attr.data-status]="status().toLowerCase()">{{ status() }}</span>
         </div>
 
         <h3 class="detail-title">{{ pub.title }}</h3>

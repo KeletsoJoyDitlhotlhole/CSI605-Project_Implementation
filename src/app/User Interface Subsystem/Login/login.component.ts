@@ -1,8 +1,8 @@
-
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -12,11 +12,15 @@ import { RouterLink } from '@angular/router';
   styleUrl: './login.css'
 })
 export class Login {
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+
   username = '';
   password = '';
   rememberMe = false;
   showPassword = false;
   errorMessage = '';
+  isLoading = false;
 
   togglePassword(): void {
     this.showPassword = !this.showPassword;
@@ -30,7 +34,16 @@ export class Login {
       return;
     }
 
-    this.errorMessage =
-      'Login authentication has not been connected yet.';
+    this.isLoading = true;
+    this.authService.login(this.username, this.password).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err: Error) => {
+        this.isLoading = false;
+        this.errorMessage = err.message || 'Login failed. Please check your credentials.';
+      }
+    });
   }
 }

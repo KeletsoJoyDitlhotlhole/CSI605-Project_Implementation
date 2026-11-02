@@ -8,13 +8,13 @@ import { finalize } from 'rxjs';
 @Component({
   selector: 'app-submit-publication',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './submit-publication.component.html',
   styleUrl: './submit-publication.component.scss'
 })
 export class SubmitPublicationComponent {
   private readonly apiUrl =
-    'http://127.0.0.1:3000/api/publications';
+    'http://localhost:3000/api/publications';
 
   title = '';
   abstract = '';
@@ -41,7 +41,16 @@ export class SubmitPublicationComponent {
   constructor(
     private readonly http: HttpClient,
     private readonly router: Router
-  ) {}
+  ) {
+    try {
+      const stored = localStorage.getItem('auth_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u.id) this.submittedBy = u.id;
+      }
+    } catch {}
+  }
+
 
   trackByIndex(index: number): number {
     return index;

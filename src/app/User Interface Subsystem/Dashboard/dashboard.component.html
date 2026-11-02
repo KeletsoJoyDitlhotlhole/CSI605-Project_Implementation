@@ -1,217 +1,371 @@
 <div class="dashboard">
 
-  <!-- Mobile Header -->
+  <!-- Mobile / Top Header -->
   <header class="mobile-header">
     <div class="mobile-brand">
       <img
-        src="assets/images/ub%20logo.png"
+        src="/assets/images/ub%20logo.png"
         alt="University of Botswana"
         class="ub-logo"
       >
-
       <div class="brand-text">
         <span>University of Botswana</span>
-        <small>Publication Management</small>
+        <small>Publication Management System</small>
       </div>
     </div>
 
-    <button
-      class="menu-button"
-      type="button"
-      aria-label="Open navigation menu">
-      ☰
-    </button>
+    <div class="header-user-status">
+      @if (user()) {
+        <span class="header-role-pill" [ngClass]="roleBadgeClass()">
+          <span class="role-icon">{{ roleIcon() }}</span>
+          {{ roleLabel() }}
+        </span>
+        <button
+          type="button"
+          class="header-logout-btn"
+          (click)="logout()"
+          title="Sign out of your account"
+        >
+          Sign Out
+        </button>
+      } @else {
+        <a routerLink="/login" class="header-login-btn">
+          Sign In
+        </a>
+      }
+    </div>
   </header>
 
   <!-- Main Dashboard -->
   <main class="dashboard-content">
 
-    <!-- Page Heading -->
-    <section class="dashboard-heading">
-      <div class="heading-text">
-        <span class="eyebrow">
-          UNIVERSITY OF BOTSWANA
-        </span>
+    <!-- Page Heading & Quick Stats -->
+    <div class="dashboard-header-wrapper">
+      <section class="dashboard-heading">
+        <div class="heading-text">
+          <span class="eyebrow">
+            UNIVERSITY OF BOTSWANA
+          </span>
+          <h1>Publication Management</h1>
+          <p>
+            {{ roleDescription() }}
+          </p>
+        </div>
+      </section>
 
-        <h1>Publication Management</h1>
+      <!-- Contextual Quick Stats -->
+      <div class="stats-group">
+        @if (authService.hasAnyRole('lecturer', 'reviewer', 'admin')) {
+          <a routerLink="/review-publication" class="stats-card stats-card--review">
+            <div class="stats-content">
+              <span class="stats-label">Pending Reviews</span>
+              <span class="stats-value" [class.loading]="pendingReviews() === null">
+                {{ pendingReviews() !== null ? pendingReviews() : '—' }}
+              </span>
+            </div>
+            <div class="stats-icon">✓</div>
+          </a>
+        }
 
-        <p>
-          Manage, submit, review and search University of Botswana
-          publications from one place.
-        </p>
+        <a routerLink="/search-publications" class="stats-card stats-card--repo">
+          <div class="stats-content">
+            <span class="stats-label">Repository Publications</span>
+            <span class="stats-value" [class.loading]="totalPublications() === null">
+              {{ totalPublications() !== null ? totalPublications() : '—' }}
+            </span>
+          </div>
+          <div class="stats-icon">⌕</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Role Context Banner -->
+    <section class="role-context-banner">
+      <div class="banner-identity">
+        <div class="user-avatar" [ngClass]="roleBadgeClass()">
+          {{ user()?.name ? user()!.name.charAt(0).toUpperCase() : '?' }}
+        </div>
+        <div class="user-info">
+          <div class="user-name-row">
+            <h2>{{ user() ? user()?.name : 'Welcome, Guest' }}</h2>
+            <span class="role-badge" [ngClass]="roleBadgeClass()">
+              <span class="badge-dot"></span>
+              {{ roleIcon() }} {{ roleLabel() }}
+            </span>
+          </div>
+          <p class="user-meta">
+            @if (user()) {
+              <span><strong>User ID:</strong> {{ user()?.id }}</span>
+              <span class="meta-separator">•</span>
+              <span><strong>Email:</strong> {{ user()?.email || 'N/A' }}</span>
+              <span class="meta-separator">•</span>
+              <span><strong>Authorized Roles:</strong> {{ user()?.roles?.join(', ') || 'user' }}</span>
+            } @else {
+              <span>Public Guest Mode. Sign in with your University account to unlock role functionalities.</span>
+            }
+          </p>
+        </div>
+      </div>
+
+      <!-- Banner Actions (Standard Authentication) -->
+      <div class="banner-actions">
+        @if (user()) {
+          <button type="button" class="btn btn-secondary banner-signout-btn" (click)="logout()">
+            Sign Out
+          </button>
+        } @else {
+          <a routerLink="/login" class="btn btn-primary banner-signin-btn">
+            Sign In
+          </a>
+        }
       </div>
     </section>
 
-    <!-- Welcome -->
-    <section class="welcome-section">
-      <h2>Welcome</h2>
-      <p>What would you like to do?</p>
+    <!-- Functionalities Section Title -->
+    <div class="section-title-bar">
+      <h3>Available Workspaces &amp; Functionalities</h3>
+      <span class="functionality-count">
+        {{ visibleCards().length }} {{ visibleCards().length === 1 ? 'Feature' : 'Features' }} for {{ roleLabel() }}
+      </span>
+    </div>
+
+    <!-- Main Action Cards Grid (Tailored by Role) -->
+    <section class="action-grid" [ngClass]="gridClass()">
+      @for (card of visibleCards(); track card.id) {
+        @if (card.link) {
+          <!-- Link Card -->
+          <a
+            class="action-card"
+            [routerLink]="card.link"
+            [attr.aria-label]="card.title"
+          >
+            <div class="card-header">
+              <div class="icon-container">
+                <span class="icon">{{ card.icon }}</span>
+              </div>
+
+              <div class="card-meta-right">
+                @if (card.badge) {
+                  <span class="card-badge">{{ card.badge }}</span>
+                }
+                <span class="card-number">{{ card.cardNumber }}</span>
+              </div>
+            </div>
+
+            <div class="card-content">
+              <h3>{{ card.title }}</h3>
+              <p>{{ card.description }}</p>
+            </div>
+
+            <div class="card-footer">
+              <span>{{ card.actionText }}</span>
+              <span class="arrow">→</span>
+            </div>
+          </a>
+        } @else {
+          <!-- Action / Modal Card -->
+          <article
+            class="action-card action-card--interactive"
+            tabindex="0"
+            role="button"
+            (click)="onCardClick(card)"
+            (keydown.enter)="onCardClick(card)"
+            (keydown.space)="$event.preventDefault(); onCardClick(card)"
+            [attr.aria-label]="card.title"
+          >
+            <div class="card-header">
+              <div class="icon-container">
+                <span class="icon">{{ card.icon }}</span>
+              </div>
+
+              <div class="card-meta-right">
+                @if (card.badge) {
+                  <span class="card-badge">{{ card.badge }}</span>
+                }
+                <span class="card-number">{{ card.cardNumber }}</span>
+              </div>
+            </div>
+
+            <div class="card-content">
+              <h3>{{ card.title }}</h3>
+              <p>{{ card.description }}</p>
+            </div>
+
+            <div class="card-footer">
+              <span>{{ card.actionText }}</span>
+              <span class="arrow">→</span>
+            </div>
+          </article>
+        }
+      }
     </section>
 
-    <!-- Main Actions -->
-    <section class="action-grid">
-
-      <!-- Submit Publication -->
-      <a
-        class="action-card"
-        routerLink="/submit-publication"
-        aria-label="Submit a publication"
-      >
-        <div class="card-header">
-          <div class="icon-container">
-            <span class="icon">↑</span>
-          </div>
-
-          <span class="card-number">01</span>
-        </div>
-
-        <div class="card-content">
-          <h3>Submit Publication</h3>
-
-          <p>
-            Submit a new research publication for processing,
-            verification and review.
-          </p>
-        </div>
-
-        <div class="card-footer">
-          <span>Submit publication</span>
-          <span class="arrow">→</span>
-        </div>
-      </a>
-
-      <!-- Review Publication -->
-      <a
-        class="action-card"
-        routerLink="/review-publication"
-        aria-label="Review publications"
-      >
-        <div class="card-header">
-          <div class="icon-container">
-            <span class="icon">✓</span>
-          </div>
-
-          <span class="card-number">02</span>
-        </div>
-
-        <div class="card-content">
-          <h3>Review Publication</h3>
-
-          <p>
-            Review submitted publications and manage them through
-            the publication review process.
-          </p>
-        </div>
-
-        <div class="card-footer">
-          <span>Review publications</span>
-          <span class="arrow">→</span>
-        </div>
-      </a>
-
-      <!-- View and Search Publications -->
-      <article
-        class="action-card"
-        tabindex="0"
-        role="button"
-      >
-        <div class="card-header">
-          <div class="icon-container">
-            <span class="icon">⌕</span>
-          </div>
-
-          <span class="card-number">03</span>
-        </div>
-
-        <div class="card-content">
-          <h3>View &amp; Search Publications</h3>
-
-          <p>
-            Browse the publication repository and search for
-            publications by title, author, department or keyword.
-          </p>
-        </div>
-
-        <div class="card-footer">
-          <span>Browse publications</span>
-          <span class="arrow">→</span>
-        </div>
-      </article>
-
-      <!-- Manage Profiles -->
-      <article
-        class="action-card"
-        tabindex="0"
-        role="button"
-      >
-        <div class="card-header">
-          <div class="icon-container">
-            <span class="icon">♙</span>
-          </div>
-
-          <span class="card-number">04</span>
-        </div>
-
-        <div class="card-content">
-          <h3>Manage Profiles</h3>
-
-          <p>
-            View and manage user profiles, update personal
-            information and maintain profile details.
-          </p>
-        </div>
-
-        <div class="card-footer">
-          <span>Manage profiles</span>
-          <span class="arrow">→</span>
-        </div>
-      </article>
-
-      <!-- Generate Report -->
-      <article
-        class="action-card"
-        tabindex="0"
-        role="button"
-      >
-        <div class="card-header">
-          <div class="icon-container">
-            <span class="icon">▤</span>
-          </div>
-
-          <span class="card-number">05</span>
-        </div>
-
-        <div class="card-content">
-          <h3>Generate Report</h3>
-
-          <p>
-            Generate reports on submitted publications, publication
-            statuses, reviews and research output.
-          </p>
-        </div>
-
-        <div class="card-footer">
-          <span>Generate reports</span>
-          <span class="arrow">→</span>
-        </div>
-      </article>
-
-    </section>
-
-    <!-- Information -->
+    <!-- Information Section -->
     <section class="information-section">
       <div class="information-icon">i</div>
-
       <div class="information-content">
-        <h3>Publication Management System</h3>
-
+        <h3>Role-Based Access Control Active</h3>
         <p>
-          This system provides a central platform for managing
-          University of Botswana publications throughout their
-          submission, review and publication lifecycle.
+          You are currently logged in as a <strong>{{ roleLabel() }}</strong>. Your dashboard displays only the cards and functionalities authorized for your role.
+          @if (authService.hasRole('student')) {
+            Students can submit new research papers and browse the repository.
+          } @else if (authService.hasAnyRole('lecturer', 'reviewer')) {
+            Lecturers can submit research publications, review student papers, and issue evaluation decisions.
+          } @else if (authService.hasRole('admin')) {
+            Administrators have unrestricted access to all submission, review, profile management, and analytical tools.
+          }
         </p>
       </div>
     </section>
 
   </main>
+
+  <!-- =====================================================
+       MODAL: Manage Profiles (Admin Functionality)
+       ===================================================== -->
+  @if (activeModal() === 'profiles') {
+    <div class="modal-backdrop" (click)="closeModal()" role="presentation">
+      <div class="modal-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modalProfilesTitle">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-eyebrow">ADMINISTRATION WORKSPACE</span>
+            <h3 id="modalProfilesTitle">Manage User Profiles &amp; Roles</h3>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Close dialog">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-intro">
+            Overview of the University of Botswana authentication realm and registered system accounts:
+          </p>
+
+          <div class="accounts-table-wrapper">
+            <table class="accounts-table">
+              <thead>
+                <tr>
+                  <th>User ID</th>
+                  <th>Full Name</th>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Permissions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>U0000001</code></td>
+                  <td><strong>Tokyo Nakamura</strong></td>
+                  <td><code>student1</code></td>
+                  <td><span class="role-badge badge-student">Student</span></td>
+                  <td>Submit publications, browse repository</td>
+                </tr>
+                <tr>
+                  <td><code>U0000002</code></td>
+                  <td><strong>Keletso Ditlhotlhole</strong></td>
+                  <td><code>lecturer1</code> / <code>reviewer1</code></td>
+                  <td><span class="role-badge badge-lecturer">Lecturer</span></td>
+                  <td>Submit publications, review student papers, approve/reject</td>
+                </tr>
+                <tr>
+                  <td><code>U0000003</code></td>
+                  <td><strong>Admin User</strong></td>
+                  <td><code>admin1</code></td>
+                  <td><span class="role-badge badge-admin">Admin</span></td>
+                  <td>Full access: submit, review, profiles, reports</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="current-session-card">
+            <h4>Current Active Session</h4>
+            <div class="session-grid">
+              <div><strong>Active Name:</strong> {{ user()?.name }}</div>
+              <div><strong>Username:</strong> {{ user()?.username }}</div>
+              <div><strong>User ID:</strong> {{ user()?.id }}</div>
+              <div><strong>Email:</strong> {{ user()?.email }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" (click)="closeModal()">Done</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- =====================================================
+       MODAL: Generate Report (Admin Functionality)
+       ===================================================== -->
+  @if (activeModal() === 'reports') {
+    <div class="modal-backdrop" (click)="closeModal()" role="presentation">
+      <div class="modal-dialog modal-dialog--wide" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modalReportsTitle">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-eyebrow">RESEARCH ANALYTICS</span>
+            <h3 id="modalReportsTitle">Generate Publication Report</h3>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Close dialog">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="report-summary-cards">
+            <div class="report-stat-card">
+              <span class="stat-number">{{ totalPublications() !== null ? totalPublications() : '—' }}</span>
+              <span class="stat-desc">Total Submissions</span>
+            </div>
+            <div class="report-stat-card">
+              <span class="stat-number">{{ pendingReviews() !== null ? pendingReviews() : '0' }}</span>
+              <span class="stat-desc">Pending Review</span>
+            </div>
+            <div class="report-stat-card">
+              <span class="stat-number">Active</span>
+              <span class="stat-desc">Peer Evaluation Cycle</span>
+            </div>
+          </div>
+
+          <div class="report-section">
+            <h4>Report Parameters</h4>
+            <div class="report-params">
+              <label>
+                Academic Year:
+                <select class="report-select">
+                  <option>2025 / 2026</option>
+                  <option>2024 / 2025</option>
+                  <option>All Historical Records</option>
+                </select>
+              </label>
+
+              <label>
+                Department / Faculty:
+                <select class="report-select">
+                  <option>All Departments</option>
+                  <option>Computer Science</option>
+                  <option>Engineering &amp; Technology</option>
+                  <option>Science &amp; Mathematics</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="report-preview-box">
+            <h4>Publication Pipeline Status</h4>
+            <div class="pipeline-bar-wrapper">
+              <div class="pipeline-bar">
+                <div class="bar-segment bar-approved" style="width: 70%" title="Approved">70% Approved</div>
+                <div class="bar-segment bar-pending" style="width: 20%" title="Pending Review">20% Under Review</div>
+                <div class="bar-segment bar-rejected" style="width: 10%" title="Rejected">10%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+          <button type="button" class="btn btn-primary" (click)="closeModal()">Export Summary PDF</button>
+        </div>
+      </div>
+    </div>
+  }
+
 </div>

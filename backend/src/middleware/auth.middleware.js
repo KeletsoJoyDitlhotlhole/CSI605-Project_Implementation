@@ -42,6 +42,21 @@ function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // In development mode, allow requests without token so the frontend UI functions before Keycloak login is connected
+    if (process.env.NODE_ENV !== "production") {
+      req.user = {
+        sub: "dev-reviewer",
+        id: "LEC000001",
+        email: "kabelo.molefe@example.com",
+        name: "Kabelo Molefe",
+        firstName: "Kabelo",
+        lastName: "Molefe",
+        username: "reviewer1",
+        roles: ["reviewer", "admin", "student"],
+      };
+      return next();
+    }
+
     return res.status(401).json({
       error: "Missing or invalid Authorization header",
     });

@@ -5,13 +5,11 @@ import { DashboardComponent } from './Dashboard/dashboard.component';
 import { SubmitPublicationComponent } from '../Publication Management Subsystem/Submit Publication/submit-publication.component';
 import { ReviewPublication } from '../Publication Management Subsystem/review-publication/review-publication';
 import { ReviewPublicationDetail } from '../Publication Management Subsystem/review-publication-detail/review-publication-detail';
-import { Login } from './Login/login.component';
+import { ViewSearchPublicationComponent } from '../Publication Management Subsystem/view-search-publication/view-search-publication';
+
+import { roleGuard } from '../services/role.guard';
 
 export const routes: Routes = [
-  {
-    path: 'login',
-    component: Login
-  },
   {
     path: 'login',
     component: Login
@@ -23,16 +21,32 @@ export const routes: Routes = [
   },
   {
     path: 'submit-publication',
-    component: SubmitPublicationComponent
+    component: SubmitPublicationComponent,
+    canActivate: [roleGuard(['student', 'lecturer', 'reviewer', 'admin'])]
   },
   {
     path: 'review-publication',
-    component: ReviewPublication
+    component: ReviewPublication,
+    canActivate: [roleGuard(['lecturer', 'reviewer', 'admin'])]
   },
 
   {
     path: "review-publication/:id",
-    component: ReviewPublicationDetail
+    component: ReviewPublicationDetail,
+    canActivate: [roleGuard(['lecturer', 'reviewer', 'admin'])]
+  },
+
+  {
+    path: 'search-publications',
+    component: ViewSearchPublicationComponent
+  },
+  {
+    path: 'publications',
+    component: ViewSearchPublicationComponent
+  },
+  {
+    path: 'view-publications',
+    component: ViewSearchPublicationComponent
   },
 
   {

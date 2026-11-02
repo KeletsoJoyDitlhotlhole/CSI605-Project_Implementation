@@ -55,7 +55,8 @@ export class ReviewPublication implements OnInit {
   }
 
   splitKeywords(keywords: string): string[] {
-    return keywords.split(", ").map(k => k.trim()).filter(Boolean);
+    if (!keywords) return [];
+    return keywords.split(/[,]+/).map(k => k.trim()).filter(Boolean);
   }
 
   goToPage(page: number): void {

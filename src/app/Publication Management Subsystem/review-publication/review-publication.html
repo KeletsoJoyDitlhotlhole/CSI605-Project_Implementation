@@ -53,14 +53,14 @@
             [state]="{ publication: pub}">
             <div class="card-top">
               <span class="reference">{{ pub.publication_reference }}</span>
-              <span class="status-badge" data-status="pending">{{ pub.status }}</span>
+              <span class="status-badge" [attr.data-status]="pub.status.toLowerCase()">{{ pub.status }}</span>
             </div>
 
             <h3>{{ pub.title }}</h3>
 
             <p class="meta">
               <span><strong>Authors:</strong> {{ pub.authors.join(", ") }}</span>
-              <span><strong>Submitted:</strong>{{ (pub.submitted_at) }}</span>
+              <span><strong>Submitted:</strong> {{ pub.submitted_at }}</span>
             </p>
 
             @if (pub.keywords) {

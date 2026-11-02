@@ -85,8 +85,8 @@
             </a>
           </div>
 
-          <button class="login-button" type="submit">
-            Sign In <span>→</span>
+          <button class="login-button" type="submit" [disabled]="isLoading">
+            {{ isLoading ? 'Signing In...' : 'Sign In' }} <span>→</span>
           </button>
         </form>
 
