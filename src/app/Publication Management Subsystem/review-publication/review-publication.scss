@@ -247,6 +247,65 @@ $text-gray: #666666;
 
 
 /* =========================
+   REVIEWER MAPPING BLOCK
+   ========================= */
+
+.reviewer-mapping {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: $ub-maroon-light;
+  border: 1px solid rgba(128, 0, 32, 0.15);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.mapping-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 130px;
+}
+
+.mapping-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: $ub-maroon;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mapping-value {
+  font-size: 13px;
+  color: $black;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.mapping-email {
+  font-size: 11px;
+  color: $text-gray;
+  font-weight: 400;
+}
+
+.mapping-arrow {
+  font-size: 20px;
+  color: $ub-maroon;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.unassigned {
+  color: $text-gray;
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* =========================
    RESPONSIVE
    ========================= */
 

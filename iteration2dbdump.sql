@@ -100,6 +100,7 @@ CREATE TABLE public."Publications" (
     title character varying(155) NOT NULL,
     publication_type character varying(50),
     lecturer_id character varying(9),
+    academic_level character varying(50),
     CONSTRAINT publications_type_check CHECK (((publication_type IS NULL) OR ((publication_type)::text = ANY ((ARRAY['Journal Article'::character varying, 'Conference Paper'::character varying, 'Thesis'::character varying, 'Dissertation'::character varying])::text[]))))
 );
 
@@ -118,7 +119,8 @@ CREATE TABLE public."Users" (
     surname character varying(50) NOT NULL,
     email character varying(50) NOT NULL,
     role character varying(50) NOT NULL,
-    supervisor_id character varying(9)
+    supervisor_id character varying(9),
+    academic_level character varying(50)
 );
 
 

@@ -47,18 +47,45 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-// Token introspection endpoint — returns the authenticated user's profile
-app.get("/api/me", authenticate, (req, res) => {
-  res.json({
-    id: req.user.id,
-    sub: req.user.sub,
-    username: req.user.username,
-    email: req.user.email,
-    name: req.user.name,
-    firstName: req.user.firstName,
-    lastName: req.user.lastName,
-    roles: req.user.roles,
-  });
+// Token introspection endpoint — returns the authenticated user's profile from Keycloak and DB
+app.get("/api/me", authenticate, async (req, res) => {
+  try {
+    const userQuery = await pool.query(
+      `SELECT user_id, firstname, surname, email, role, academic_level, supervisor_id 
+       FROM "Users" 
+       WHERE user_id = $1 OR LOWER(email) = LOWER($2) 
+       LIMIT 1`,
+      [req.user.id, req.user.email || '']
+    );
+
+    const dbUser = userQuery.rows[0];
+
+    res.json({
+      id: dbUser?.user_id || req.user.id,
+      sub: req.user.sub,
+      username: req.user.username,
+      email: dbUser?.email || req.user.email,
+      name: req.user.name || (dbUser ? `${dbUser.firstname} ${dbUser.surname}` : ''),
+      firstName: dbUser?.firstname || req.user.firstName,
+      lastName: dbUser?.surname || req.user.lastName,
+      roles: req.user.roles,
+      academic_level: dbUser?.academic_level || req.user.academic_level || null,
+      supervisor_id: dbUser?.supervisor_id || null,
+    });
+  } catch (err) {
+    console.error("Error in /api/me:", err);
+    res.json({
+      id: req.user.id,
+      sub: req.user.sub,
+      username: req.user.username,
+      email: req.user.email,
+      name: req.user.name,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
+      roles: req.user.roles,
+      academic_level: null,
+    });
+  }
 });
 
 // Mount routes/endpoints (supporting both root and /api/publications paths)

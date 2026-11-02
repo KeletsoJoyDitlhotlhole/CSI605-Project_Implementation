@@ -79,6 +79,65 @@
         </small>
       </div>
 
+      <!-- Academic Level / Degree Program -->
+      <div class="form-group academic-level-group">
+        <label>
+          Academic Program / Level <span>*</span>
+        </label>
+        <p class="field-hint">Select your current graduate degree to filter the required submission type:</p>
+
+        <div class="level-selector-pills" role="radiogroup" aria-label="Academic Level">
+          <button
+            type="button"
+            class="level-pill"
+            [class.active]="studentLevel === 'masters'"
+            (click)="onStudentLevelChange('masters')"
+            role="radio"
+            [attr.aria-checked]="studentLevel === 'masters'"
+          >
+            <span class="pill-icon">🎓</span>
+            <span class="pill-text">
+              <strong>Master's Degree</strong>
+              <small>MSc / MPhil / MA (Submits Thesis)</small>
+            </span>
+            <span class="pill-check" *ngIf="studentLevel === 'masters'">✓</span>
+          </button>
+
+          <button
+            type="button"
+            class="level-pill"
+            [class.active]="studentLevel === 'phd'"
+            (click)="onStudentLevelChange('phd')"
+            role="radio"
+            [attr.aria-checked]="studentLevel === 'phd'"
+          >
+            <span class="pill-icon">🏛️</span>
+            <span class="pill-text">
+              <strong>Doctoral Degree (PhD)</strong>
+              <small>Doctor of Philosophy (Submits Dissertation)</small>
+            </span>
+            <span class="pill-check" *ngIf="studentLevel === 'phd'">✓</span>
+          </button>
+        </div>
+
+        <!-- Explanatory notice banners -->
+        <div *ngIf="studentLevel === 'masters'" class="level-info-banner banner-masters">
+          <span class="banner-icon">🎓</span>
+          <div class="banner-body">
+            <strong>Master's Degree Track:</strong>
+            <span>Master's candidates submit a <strong>Thesis</strong> for degree completion. Dissertations are reserved for PhD candidates.</span>
+          </div>
+        </div>
+
+        <div *ngIf="studentLevel === 'phd'" class="level-info-banner banner-phd">
+          <span class="banner-icon">🏛️</span>
+          <div class="banner-body">
+            <strong>PhD / Doctoral Track:</strong>
+            <span>PhD candidates submit a <strong>Dissertation</strong> for doctoral completion. Theses are reserved for Master's candidates.</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Publication type -->
       <div class="form-group">
         <label for="publicationType">
@@ -89,16 +148,17 @@
           id="publicationType"
           name="publicationType"
           [(ngModel)]="publicationType"
+          (change)="onPublicationTypeChange()"
           [class.invalid-field]="fieldErrors['publicationType']"
           [attr.aria-invalid]="!!fieldErrors['publicationType']"
         >
           <option value="">Select publication type</option>
 
           <option
-            *ngFor="let type of publicationTypes"
-            [value]="type"
+            *ngFor="let opt of filteredPublicationTypes"
+            [value]="opt.value"
           >
-            {{ type }}
+            {{ opt.label }}
           </option>
         </select>
 

@@ -140,8 +140,8 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
     { label: 'All Types', value: 'all' },
     { label: 'Journal Article', value: 'Journal Article' },
     { label: 'Conference Paper', value: 'Conference Paper' },
-    { label: 'Thesis', value: 'Thesis' },
-    { label: 'Dissertation', value: 'Dissertation' }
+    { label: "Thesis (Master's)", value: 'Thesis' },
+    { label: 'Dissertation (PhD)', value: 'Dissertation' }
   ];
 
   readonly sortOptions = [
@@ -388,6 +388,14 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
     } catch {
       return dateStr;
     }
+  }
+
+  formatPublicationType(type?: string): string {
+    if (!type) return 'N/A';
+    const lower = type.trim().toLowerCase();
+    if (lower === 'thesis') return "Thesis (Master's)";
+    if (lower === 'dissertation') return 'Dissertation (PhD)';
+    return type;
   }
 
   private loadPublications(openPubId?: string | null): void {

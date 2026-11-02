@@ -12,6 +12,7 @@ export interface AuthUser {
   firstName?: string;
   lastName?: string;
   roles: string[];
+  academic_level?: string;
 }
 
 export interface TokenResponse {
@@ -48,10 +49,49 @@ export class AuthService {
       const token = localStorage.getItem('auth_token');
       if (storedUser && token) {
         this.currentUser.set(JSON.parse(storedUser));
+        this.loadDbProfile();
       }
     } catch {
       this.clearStorage();
     }
+  }
+
+  loadDbProfile(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const token = this.getToken();
+    if (!token) return;
+
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+    });
+
+    this.http.get<any>('http://localhost:3000/api/me', { headers }).subscribe({
+      next: profile => {
+        if (profile) {
+          const curr = this.currentUser();
+          if (curr) {
+            const updated: AuthUser = {
+              ...curr,
+              id: profile.id || curr.id,
+              academic_level: profile.academic_level || curr.academic_level
+            };
+            this.currentUser.set(updated);
+            if (isPlatformBrowser(this.platformId)) {
+              localStorage.setItem('auth_user', JSON.stringify(updated));
+              if (updated.academic_level) {
+                const lvl = updated.academic_level.toLowerCase();
+                if (lvl.includes('master')) {
+                  localStorage.setItem('student_academic_level', 'masters');
+                } else if (lvl.includes('phd')) {
+                  localStorage.setItem('student_academic_level', 'phd');
+                }
+              }
+            }
+          }
+        }
+      },
+      error: () => {}
+    });
   }
 
   login(username: string, password: string): Observable<TokenResponse> {
@@ -74,6 +114,8 @@ export class AuthService {
             localStorage.setItem('auth_user', JSON.stringify(user));
           }
           this.currentUser.set(user);
+          // Sync with database profile
+          this.loadDbProfile();
         }
       }),
       catchError(err => {
@@ -142,6 +184,13 @@ export class AuthService {
         roles.push(...payload.realm_access.roles);
       }
 
+      const cleanRoles = roles.filter(r => !r.startsWith('default-roles-') && r !== 'offline_access' && r !== 'uma_authorization');
+      let academicLevel = payload.academic_level;
+      if (!academicLevel) {
+        if (cleanRoles.some(r => r.toLowerCase().includes('phd'))) academicLevel = 'PhD';
+        else if (cleanRoles.some(r => r.toLowerCase().includes('master'))) academicLevel = "Master's";
+      }
+
       return {
         id: payload.user_id || payload.sub || fallbackUsername,
         username: payload.preferred_username || fallbackUsername,
@@ -149,7 +198,8 @@ export class AuthService {
         name: payload.name || `${payload.given_name || ''} ${payload.family_name || ''}`.trim() || fallbackUsername,
         firstName: payload.given_name,
         lastName: payload.family_name,
-        roles: roles.filter(r => !r.startsWith('default-roles-') && r !== 'offline_access' && r !== 'uma_authorization')
+        roles: cleanRoles,
+        academic_level: academicLevel
       };
     } catch {
       return {

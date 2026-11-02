@@ -99,6 +99,7 @@ exports.getAllPublcations = async (req, res) => {
                 pub.keywords,
                 pub.status,
                 pub.publication_type,
+                pub.academic_level,
                 pub.created_at,
                 pub.submitted_at,
 
@@ -114,7 +115,13 @@ exports.getAllPublcations = async (req, res) => {
 
                 u.firstname AS submitter_firstname,
                 u.surname AS submitter_surname,
-                u.email AS submitter_email
+                u.email AS submitter_email,
+                u.academic_level AS submitter_academic_level,
+
+                pub.lecturer_id,
+                l.firstname AS lecturer_firstname,
+                l.surname AS lecturer_surname,
+                l.email AS lecturer_email
             FROM 
                 public."Publications" pub
             LEFT JOIN (
@@ -126,6 +133,10 @@ exports.getAllPublcations = async (req, res) => {
                 public."Users" u
             ON
                 pub.submitted_by = u.user_id
+            LEFT JOIN
+                public."Users" l
+            ON
+                pub.lecturer_id = l.user_id
             ${whereClause}
             ${orderClause}
         `;
@@ -164,6 +175,7 @@ exports.getPublicationById = async (req, res) => {
             pub.keywords,
             pub.status,
             pub.publication_type,
+            pub.academic_level,
             pub.created_at,
             pub.submitted_at,
 
@@ -179,7 +191,13 @@ exports.getPublicationById = async (req, res) => {
 
             u.firstname AS submitter_firstname,
             u.surname AS submitter_surname,
-            u.email AS submitter_email
+            u.email AS submitter_email,
+            u.academic_level AS submitter_academic_level,
+
+            pub.lecturer_id,
+            l.firstname AS lecturer_firstname,
+            l.surname AS lecturer_surname,
+            l.email AS lecturer_email
         FROM 
             public."Publications" pub
         LEFT JOIN (
@@ -191,6 +209,10 @@ exports.getPublicationById = async (req, res) => {
             public."Users" u
         ON
             pub.submitted_by = u.user_id
+        LEFT JOIN
+            public."Users" l
+        ON
+            pub.lecturer_id = l.user_id
         WHERE
             pub.publication_id = $1
     `;
@@ -222,6 +244,7 @@ exports.getReviewList = async (req, res) => {
             pub.keywords,
             pub.status,
             pub.publication_type,
+            pub.academic_level,
             pub.created_at,
             pub.submitted_at,
 
@@ -237,7 +260,13 @@ exports.getReviewList = async (req, res) => {
 
             u.firstname AS submitter_firstname,
             u.surname AS submitter_surname,
-            u.email AS submitter_email
+            u.email AS submitter_email,
+            u.academic_level AS submitter_academic_level,
+
+            pub.lecturer_id,
+            l.firstname AS lecturer_firstname,
+            l.surname AS lecturer_surname,
+            l.email AS lecturer_email
         FROM 
             public."Publications" pub
         LEFT JOIN (
@@ -249,6 +278,10 @@ exports.getReviewList = async (req, res) => {
             public."Users" u
         ON
             pub.submitted_by = u.user_id
+        LEFT JOIN
+            public."Users" l
+        ON
+            pub.lecturer_id = l.user_id
         WHERE
             LOWER(pub.status) = ANY($1)
         ORDER BY 
@@ -524,6 +557,7 @@ const submitPublication = async (req, res) => {
         s.user_id,
         s.role,
         s.supervisor_id,
+        s.academic_level,
         l.role AS supervisor_role
       FROM "Users" s
       LEFT JOIN "Users" l
@@ -557,6 +591,42 @@ const submitPublication = async (req, res) => {
       });
     }
 
+    // Enforce rule: Thesis is for Master's students, Dissertation is for PhD students
+    const cleanStudentLevel = (req.body.studentLevel || req.body.academicLevel || user.academic_level || '').toLowerCase();
+    const isMasters = cleanStudentLevel.includes('master') || (req.user?.roles || []).some(r => r.toLowerCase().includes('master'));
+    const isPhd = cleanStudentLevel.includes('phd') || cleanStudentLevel.includes('doc') || (req.user?.roles || []).some(r => r.toLowerCase().includes('phd'));
+
+    if (isMasters && cleanPubType === 'Dissertation') {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+
+      return res.status(400).json({
+        success: false,
+        message: "Dissertations are reserved for PhD students. Master's students must submit a Thesis."
+      });
+    }
+
+    if (isPhd && cleanPubType === 'Thesis') {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+
+      return res.status(400).json({
+        success: false,
+        message: "Theses are reserved for Master's students. PhD students must submit a Dissertation."
+      });
+    }
+
+    let academicLevelToSave = user.academic_level || null;
+    if (cleanPubType === 'Thesis') {
+      academicLevelToSave = "Master's";
+    } else if (cleanPubType === 'Dissertation') {
+      academicLevelToSave = "PhD";
+    } else if (cleanStudentLevel.includes('master')) {
+      academicLevelToSave = "Master's";
+    } else if (cleanStudentLevel.includes('phd')) {
+      academicLevelToSave = "PhD";
+    }
+
     // If submitter is a lecturer, they can self-supervise or assign another lecturer
     if (roleLower === 'lecturer' || roleLower === 'reviewer') {
       if (!user.supervisor_id) {
@@ -577,6 +647,14 @@ const submitPublication = async (req, res) => {
           message: 'No valid lecturer is assigned to this student.'
         });
       }
+    }
+
+    // Save academic level for student user if not set yet
+    if (roleLower === 'student' && !user.academic_level && academicLevelToSave) {
+      await client.query(
+        `UPDATE public."Users" SET academic_level = $1 WHERE user_id = $2`,
+        [academicLevelToSave, user.user_id]
+      );
     }
 
     // Prevent duplicate titles (case-insensitive)
@@ -618,11 +696,12 @@ const submitPublication = async (req, res) => {
         publication_reference,
         title,
         publication_type,
-        lecturer_id
+        lecturer_id,
+        academic_level
       )
       VALUES (
         $1, $2, $3, $4, NOW(), NOW(), NOW(),
-        $5, $6, $7, $8, $9
+        $5, $6, $7, $8, $9, $10
       )
       `,
       [
@@ -634,7 +713,8 @@ const submitPublication = async (req, res) => {
         publicationReference,
         cleanTitle,
         cleanPubType,
-        user.supervisor_id
+        user.supervisor_id,
+        academicLevelToSave
       ]
     );
 

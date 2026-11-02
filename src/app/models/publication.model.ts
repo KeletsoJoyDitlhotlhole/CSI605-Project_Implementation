@@ -6,6 +6,7 @@ export interface Publication {
     keywords: string;
     status: string;
     publication_type?: string;
+    academic_level?: string;
     created_at: string;
     submitted_at: string;
     authors: string[];
@@ -15,6 +16,12 @@ export interface Publication {
     submitter_firstname?: string;
     submitter_surname?: string;
     submitter_email?: string;
+    submitter_academic_level?: string;
+    // Assigned reviewer (lecturer)
+    lecturer_id?: string;
+    lecturer_firstname?: string;
+    lecturer_surname?: string;
+    lecturer_email?: string;
 }
 
 export interface APIResponse {
@@ -38,6 +45,8 @@ export interface ReviewPublication {
   abstract: string;
   keywords: string;
   status: string;
+  publication_type?: string;
+  academic_level?: string;
   created_at: string;
   submitted_at: string;
   authors: string[];
@@ -47,6 +56,12 @@ export interface ReviewPublication {
   submitter_firstname: string;
   submitter_surname: string;
   submitter_email: string;
+  submitter_academic_level?: string;
+  // Assigned reviewer (lecturer)
+  lecturer_id?: string;
+  lecturer_firstname?: string;
+  lecturer_surname?: string;
+  lecturer_email?: string;
 }
 
 export interface ReviewResponse {

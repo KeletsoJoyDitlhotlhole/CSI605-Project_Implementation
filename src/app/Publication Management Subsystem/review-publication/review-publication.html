@@ -53,6 +53,9 @@
             [state]="{ publication: pub}">
             <div class="card-top">
               <span class="reference">{{ pub.publication_reference }}</span>
+              @if (pub.publication_type) {
+                <span class="type-badge">{{ pub.publication_type === 'Thesis' ? "Thesis (Master's)" : (pub.publication_type === 'Dissertation' ? "Dissertation (PhD)" : pub.publication_type) }}</span>
+              }
               <span class="status-badge" [attr.data-status]="pub.status.toLowerCase()">{{ pub.status }}</span>
             </div>
 
@@ -62,6 +65,37 @@
               <span><strong>Authors:</strong> {{ pub.authors.join(", ") }}</span>
               <span><strong>Submitted:</strong> {{ pub.submitted_at }}</span>
             </p>
+
+            <!-- Student → Lecturer mapping -->
+            <div class="reviewer-mapping">
+              <div class="mapping-row">
+                <span class="mapping-label">🎓 Submitted by</span>
+                <span class="mapping-value">
+                  @if (pub.submitter_firstname || pub.submitter_surname) {
+                    {{ pub.submitter_firstname }} {{ pub.submitter_surname }}
+                    @if (pub.submitter_email) {
+                      <small class="mapping-email">&lt;{{ pub.submitter_email }}&gt;</small>
+                    }
+                  } @else {
+                    <em>Unknown student</em>
+                  }
+                </span>
+              </div>
+              <span class="mapping-arrow">→</span>
+              <div class="mapping-row">
+                <span class="mapping-label">👨‍🏫 Assigned reviewer</span>
+                <span class="mapping-value">
+                  @if (pub.lecturer_firstname || pub.lecturer_surname) {
+                    {{ pub.lecturer_firstname }} {{ pub.lecturer_surname }}
+                    @if (pub.lecturer_email) {
+                      <small class="mapping-email">&lt;{{ pub.lecturer_email }}&gt;</small>
+                    }
+                  } @else {
+                    <em class="unassigned">Not assigned</em>
+                  }
+                </span>
+              </div>
+            </div>
 
             @if (pub.keywords) {
               <ul class="keywords">

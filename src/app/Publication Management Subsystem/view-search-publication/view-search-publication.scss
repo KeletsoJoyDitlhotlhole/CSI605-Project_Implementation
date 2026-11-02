@@ -1118,3 +1118,35 @@ $text-muted: #94a3b8;
     }
   }
 }
+
+
+/* =========================
+   REVIEWER META ITEM (modal)
+   ========================= */
+
+.meta-item--reviewer {
+  grid-column: 1 / -1;
+  background: $ub-maroon-light;
+  border: 1px solid rgba(128, 0, 32, 0.15);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.reviewer-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.reviewer-unassigned {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: $text-gray;
+  font-style: italic;
+}
+
+.reviewer-icon {
+  font-size: 16px;
+}

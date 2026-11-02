@@ -30,6 +30,9 @@
 
         <div class="card-top">
           <span class="reference">{{ pub.publication_reference }}</span>
+          @if (pub.publication_type) {
+            <span class="type-badge">{{ pub.publication_type === 'Thesis' ? "Thesis (Master's)" : (pub.publication_type === 'Dissertation' ? "Dissertation (PhD)" : pub.publication_type) }}</span>
+          }
           <span class="status-badge" [attr.data-status]="status().toLowerCase()">{{ status() }}</span>
         </div>
 
@@ -39,6 +42,52 @@
           <span><strong>Authors:</strong> {{ pub.authors?.join(", ") }}</span>
           <span><strong>Submitted:</strong> {{ (pub.submitted_at ?? pub.created_at)}}</span>
         </p>
+
+        <!-- Student → Lecturer reviewer mapping -->
+        <div class="reviewer-assignment-block">
+          <h4 class="assignment-title">Reviewer Assignment</h4>
+          <div class="assignment-map">
+            <div class="assignment-party student-party">
+              <div class="party-icon">🎓</div>
+              <div class="party-info">
+                <span class="party-role">Submitting Student</span>
+                <span class="party-name">
+                  @if (pub.submitter_firstname || pub.submitter_surname) {
+                    {{ pub.submitter_firstname }} {{ pub.submitter_surname }}
+                  } @else {
+                    <em>Unknown</em>
+                  }
+                </span>
+                @if (pub.submitter_email) {
+                  <small class="party-email">{{ pub.submitter_email }}</small>
+                }
+              </div>
+            </div>
+
+            <div class="assignment-connector">
+              <span class="connector-line"></span>
+              <span class="connector-label">reviewed by</span>
+              <span class="connector-arrow">→</span>
+            </div>
+
+            <div class="assignment-party lecturer-party">
+              <div class="party-icon">👨‍🏫</div>
+              <div class="party-info">
+                <span class="party-role">Assigned Reviewer</span>
+                <span class="party-name">
+                  @if (pub.lecturer_firstname || pub.lecturer_surname) {
+                    {{ pub.lecturer_firstname }} {{ pub.lecturer_surname }}
+                  } @else {
+                    <em class="unassigned">Not assigned</em>
+                  }
+                </span>
+                @if (pub.lecturer_email) {
+                  <small class="party-email">{{ pub.lecturer_email }}</small>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
 
         @if (pub.keywords) {
           <ul class="keywords">

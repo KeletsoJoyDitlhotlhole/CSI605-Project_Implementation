@@ -238,7 +238,7 @@
               <div class="reference-group">
                 <span class="reference">{{ pub.publication_reference || 'REF PENDING' }}</span>
                 @if (pub.publication_type) {
-                  <span class="type-badge">{{ pub.publication_type }}</span>
+                  <span class="type-badge">{{ formatPublicationType(pub.publication_type) }}</span>
                 }
               </div>
 
@@ -396,7 +396,7 @@
 
             <div class="meta-item">
               <span class="meta-label">Publication Type</span>
-              <span class="meta-value">{{ pub.publication_type || 'Unspecified' }}</span>
+              <span class="meta-value">{{ formatPublicationType(pub.publication_type) }}</span>
             </div>
 
             <div class="meta-item">
@@ -412,6 +412,24 @@
                   <small class="meta-email">&lt;{{ pub.submitter_email }}&gt;</small>
                 }
               </span>
+            </div>
+
+            <!-- Reviewer / Assigned Lecturer mapping -->
+            <div class="meta-item meta-item--reviewer">
+              <span class="meta-label">Reviewing Lecturer</span>
+              @if (pub.lecturer_firstname || pub.lecturer_surname) {
+                <span class="meta-value reviewer-value">
+                  <span class="reviewer-icon">👨‍🏫</span>
+                  {{ pub.lecturer_firstname || '' }} {{ pub.lecturer_surname || '' }}
+                  @if (pub.lecturer_email) {
+                    <small class="meta-email">&lt;{{ pub.lecturer_email }}&gt;</small>
+                  }
+                </span>
+              } @else {
+                <span class="meta-value reviewer-unassigned">
+                  <span class="reviewer-icon">—</span> Not yet assigned
+                </span>
+              }
             </div>
           </div>
 

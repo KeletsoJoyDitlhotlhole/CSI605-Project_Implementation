@@ -21,6 +21,7 @@ export class SubmitPublicationComponent {
   keywords = '';
   submittedBy = '';
   publicationType = '';
+  studentLevel: 'masters' | 'phd' | '' = '';
 
   authors: string[] = [''];
   selectedFile: File | null = null;
@@ -38,6 +39,31 @@ export class SubmitPublicationComponent {
     'Dissertation'
   ];
 
+  get filteredPublicationTypes(): { value: string; label: string }[] {
+    if (this.studentLevel === 'masters') {
+      return [
+        { value: 'Journal Article', label: 'Journal Article' },
+        { value: 'Conference Paper', label: 'Conference Paper' },
+        { value: 'Thesis', label: "Thesis (Master's Students)" }
+      ];
+    }
+
+    if (this.studentLevel === 'phd') {
+      return [
+        { value: 'Journal Article', label: 'Journal Article' },
+        { value: 'Conference Paper', label: 'Conference Paper' },
+        { value: 'Dissertation', label: 'Dissertation (PhD Students)' }
+      ];
+    }
+
+    return [
+      { value: 'Journal Article', label: 'Journal Article' },
+      { value: 'Conference Paper', label: 'Conference Paper' },
+      { value: 'Thesis', label: "Thesis (Master's Students)" },
+      { value: 'Dissertation', label: 'Dissertation (PhD Students)' }
+    ];
+  }
+
   constructor(
     private readonly http: HttpClient,
     private readonly router: Router
@@ -47,8 +73,66 @@ export class SubmitPublicationComponent {
       if (stored) {
         const u = JSON.parse(stored);
         if (u.id) this.submittedBy = u.id;
+        if (u.academic_level) {
+          const lvl = u.academic_level.toLowerCase();
+          if (lvl.includes('master')) this.studentLevel = 'masters';
+          else if (lvl.includes('phd')) this.studentLevel = 'phd';
+        } else if (Array.isArray(u.roles)) {
+          if (u.roles.some((r: string) => r.toLowerCase().includes('phd'))) {
+            this.studentLevel = 'phd';
+          } else if (u.roles.some((r: string) => r.toLowerCase().includes('master'))) {
+            this.studentLevel = 'masters';
+          }
+        }
+      }
+
+      const savedLevel = localStorage.getItem('student_academic_level');
+      if (!this.studentLevel && (savedLevel === 'masters' || savedLevel === 'phd')) {
+        this.studentLevel = savedLevel;
       }
     } catch {}
+  }
+
+  onStudentLevelChange(level: 'masters' | 'phd'): void {
+    this.studentLevel = level;
+    try {
+      localStorage.setItem('student_academic_level', level);
+    } catch {}
+
+    delete this.fieldErrors['studentLevel'];
+
+    // Enforce rule: Thesis for Master's, Dissertation for PhD
+    if (level === 'masters' && this.publicationType === 'Dissertation') {
+      this.publicationType = 'Thesis';
+      delete this.fieldErrors['publicationType'];
+    } else if (level === 'phd' && this.publicationType === 'Thesis') {
+      this.publicationType = 'Dissertation';
+      delete this.fieldErrors['publicationType'];
+    }
+  }
+
+  onPublicationTypeChange(): void {
+    if (this.publicationType === 'Thesis') {
+      if (this.studentLevel === 'phd') {
+        this.fieldErrors['publicationType'] =
+          'Theses are reserved for Master\'s students. PhD students must submit a Dissertation.';
+      } else {
+        this.studentLevel = 'masters';
+        try { localStorage.setItem('student_academic_level', 'masters'); } catch {}
+        delete this.fieldErrors['publicationType'];
+      }
+    } else if (this.publicationType === 'Dissertation') {
+      if (this.studentLevel === 'masters') {
+        this.fieldErrors['publicationType'] =
+          'Dissertations are reserved for PhD students. Master\'s students must submit a Thesis.';
+      } else {
+        this.studentLevel = 'phd';
+        try { localStorage.setItem('student_academic_level', 'phd'); } catch {}
+        delete this.fieldErrors['publicationType'];
+      }
+    } else {
+      delete this.fieldErrors['publicationType'];
+    }
   }
 
 
@@ -123,6 +207,12 @@ export class SubmitPublicationComponent {
     if (!this.publicationType) {
       this.fieldErrors['publicationType'] =
         'Publication Type is required.';
+    } else if (this.studentLevel === 'masters' && this.publicationType === 'Dissertation') {
+      this.fieldErrors['publicationType'] =
+        'Dissertations are reserved for PhD students. Master\'s students must submit a Thesis.';
+    } else if (this.studentLevel === 'phd' && this.publicationType === 'Thesis') {
+      this.fieldErrors['publicationType'] =
+        'Theses are reserved for Master\'s students. PhD students must submit a Dissertation.';
     }
 
     if (!this.abstract.trim()) {
@@ -159,6 +249,7 @@ export class SubmitPublicationComponent {
   showMissingFieldsPopup(): void {
     const fieldLabels: Record<string, string> = {
       title: 'Publication Title',
+      studentLevel: 'Academic Program',
       publicationType: 'Publication Type',
       abstract: 'Abstract',
       keywords: 'Domain Keywords',
@@ -203,6 +294,8 @@ export class SubmitPublicationComponent {
     formData.append('keywords', this.keywords.trim());
     formData.append('submittedBy', this.submittedBy.trim());
     formData.append('publicationType', this.publicationType);
+    formData.append('studentLevel', this.studentLevel);
+    formData.append('academicLevel', this.studentLevel === 'masters' ? "Master's" : (this.studentLevel === 'phd' ? 'PhD' : ''));
 
     formData.append(
       'authors',
