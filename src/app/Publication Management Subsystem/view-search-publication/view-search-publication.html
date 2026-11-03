@@ -240,6 +240,9 @@
                 @if (pub.publication_type) {
                   <span class="type-badge">{{ formatPublicationType(pub.publication_type) }}</span>
                 }
+                @if (pub.status) {
+                  <span class="status-badge" [attr.data-status]="pub.status.toLowerCase()">{{ pub.status }}</span>
+                }
               </div>
 
               <span class="card-date">{{ formatDate(pub.submitted_at || pub.created_at) }}</span>
@@ -370,6 +373,9 @@
             </button>
             @if (pub.publication_type) {
               <span class="type-badge">{{ pub.publication_type }}</span>
+            }
+            @if (pub.status) {
+              <span class="status-badge" [attr.data-status]="pub.status.toLowerCase()">{{ pub.status }}</span>
             }
           </div>
 

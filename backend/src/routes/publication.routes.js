@@ -3,28 +3,33 @@
 const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/upload.middleware");
-const authenticate = require("../middleware/auth.middleware");
+const { authenticate, optionalAuthenticate } = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
 const publicationsController = require("../controllers/publication.controller");
 
-// ─── All routes below require a valid Keycloak JWT ─────────────────
-router.use(authenticate);
+const ALL_ROLES = ["student", "lecturer", "reviewer", "admin"];
+const REVIEW_ROLES = ["lecturer", "reviewer", "admin"];
 
-// Get all publications (any authenticated user)
-router.get("/", authorize("student", "lecturer", "reviewer", "admin"), publicationsController.getAllPublcations);
+// ─── Public (guest) browsing — guests only see Approved publications ──
+// A supplied token is still verified; signed-in users see everything.
+
+// Get all publications
+router.get("/", optionalAuthenticate, publicationsController.getAllPublcations);
+
+// ─── Routes below require a valid Keycloak JWT ─────────────────────
 
 // Get review list
 // publications that have to be reviewed (lecturers, reviewers, and admins)
-router.get("/review", authorize("lecturer", "reviewer", "admin"), publicationsController.getReviewList);
+router.get("/review", authenticate, authorize(...REVIEW_ROLES), publicationsController.getReviewList);
 
 // get the publication file
-router.get("/review/:id/file", authorize("lecturer", "reviewer", "admin"), publicationsController.getPubFile);
+router.get("/review/:id/file", authenticate, authorize(...REVIEW_ROLES), publicationsController.getPubFile);
 
 // get all registered comments for a particular publication
-router.get("/review/:id/comments", authorize("lecturer", "reviewer", "admin"), publicationsController.getAllReviewComments);
+router.get("/review/:id/comments", authenticate, authorize(...REVIEW_ROLES), publicationsController.getAllReviewComments);
 
 // upload, create, register a review comment for a particular publication
-router.post("/review/:id/comments", authorize("lecturer", "reviewer", "admin"), publicationsController.createReviewComment);
+router.post("/review/:id/comments", authenticate, authorize(...REVIEW_ROLES), publicationsController.createReviewComment);
 
 // Upload only one file found in form field document or publicationFile
 const uploadDocumentOrFile = (req, res, next) => {
@@ -42,15 +47,15 @@ const uploadDocumentOrFile = (req, res, next) => {
 };
 
 // Submit a publication (students, lecturers, reviewers, and admins)
-router.post("/", authorize("student", "lecturer", "reviewer", "admin"), uploadDocumentOrFile, publicationsController.createPublication);
+router.post("/", authenticate, authorize(...ALL_ROLES), uploadDocumentOrFile, publicationsController.createPublication);
 
 // affect pub status: approve|reject (lecturers, reviewers, and admins)
-router.patch("/:id/status", authorize("lecturer", "reviewer", "admin"), publicationsController.updatePubStatus);
+router.patch("/:id/status", authenticate, authorize(...REVIEW_ROLES), publicationsController.updatePubStatus);
 
-// Get publication file (any authenticated user: student, lecturer, reviewer, admin)
-router.get("/:id/file", authorize("student", "lecturer", "reviewer", "admin"), publicationsController.getPubFile);
+// Get publication file (guests: Approved only)
+router.get("/:id/file", optionalAuthenticate, publicationsController.getPubFile);
 
-// Get single publication by ID (any authenticated user)
-router.get("/:id", authorize("student", "lecturer", "reviewer", "admin"), publicationsController.getPublicationById);
+// Get single publication by ID (guests: Approved only)
+router.get("/:id", optionalAuthenticate, publicationsController.getPublicationById);
 
-module.exports = router;
+module.exports = router;

@@ -1,9 +1,10 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Inject, PLATFORM_ID, effect } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-submit-publication',
@@ -15,6 +16,8 @@ import { finalize } from 'rxjs';
 export class SubmitPublicationComponent {
   private readonly apiUrl =
     'http://localhost:3000/api/publications';
+  private readonly userLookupUrl =
+    'http://localhost:3000/api/users';
 
   title = '';
   abstract = '';
@@ -22,6 +25,9 @@ export class SubmitPublicationComponent {
   submittedBy = '';
   publicationType = '';
   studentLevel: 'masters' | 'phd' | '' = '';
+  dbAcademicLevelLocked = false;
+  isLecturer = false;
+  studentNameFromDb = '';
 
   authors: string[] = [''];
   selectedFile: File | null = null;
@@ -40,6 +46,13 @@ export class SubmitPublicationComponent {
   ];
 
   get filteredPublicationTypes(): { value: string; label: string }[] {
+    if (this.isLecturer) {
+      return [
+        { value: 'Journal Article', label: 'Journal Article' },
+        { value: 'Conference Paper', label: 'Conference Paper' }
+      ];
+    }
+
     if (this.studentLevel === 'masters') {
       return [
         { value: 'Journal Article', label: 'Journal Article' },
@@ -66,34 +79,114 @@ export class SubmitPublicationComponent {
 
   constructor(
     private readonly http: HttpClient,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly authService: AuthService,
+    @Inject(PLATFORM_ID) private readonly platformId: Object
   ) {
-    try {
-      const stored = localStorage.getItem('auth_user');
-      if (stored) {
-        const u = JSON.parse(stored);
-        if (u.id) this.submittedBy = u.id;
-        if (u.academic_level) {
-          const lvl = u.academic_level.toLowerCase();
-          if (lvl.includes('master')) this.studentLevel = 'masters';
-          else if (lvl.includes('phd')) this.studentLevel = 'phd';
-        } else if (Array.isArray(u.roles)) {
-          if (u.roles.some((r: string) => r.toLowerCase().includes('phd'))) {
-            this.studentLevel = 'phd';
-          } else if (u.roles.some((r: string) => r.toLowerCase().includes('master'))) {
-            this.studentLevel = 'masters';
-          }
+    // Reactively sync when AuthService loads/updates the user profile from /api/me
+    effect(() => {
+      const u = this.authService.currentUser();
+      if (u) {
+        if (!this.submittedBy && u.id) {
+          this.submittedBy = u.id;
         }
+        const roles = (u.roles || []).map((r: string) => r.toLowerCase());
+        const userIsLecturer = (roles.includes('lecturer') || roles.includes('reviewer')) && !roles.includes('student') && !roles.includes('admin');
+        this.applyUserProfileFromDb(u.academic_level, u.name || '', userIsLecturer ? 'lecturer' : '');
+      }
+    });
+
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    try {
+      const u = this.authService.currentUser() || JSON.parse(localStorage.getItem('auth_user') || 'null');
+      if (u) {
+        if (u.id) this.submittedBy = u.id;
+        const roles = (u.roles || []).map((r: string) => r.toLowerCase());
+        const userIsLecturer = (roles.includes('lecturer') || roles.includes('reviewer')) && !roles.includes('student') && !roles.includes('admin');
+        this.applyUserProfileFromDb(u.academic_level, u.name || '', userIsLecturer ? 'lecturer' : '');
       }
 
-      const savedLevel = localStorage.getItem('student_academic_level');
-      if (!this.studentLevel && (savedLevel === 'masters' || savedLevel === 'phd')) {
-        this.studentLevel = savedLevel;
+      if (this.submittedBy) {
+        this.lookupUserAcademicLevel(this.submittedBy);
       }
     } catch {}
   }
 
+  private applyUserProfileFromDb(rawLevel: string | null | undefined, name = '', rawRole = ''): void {
+    const lvl = (rawLevel || '').trim().toLowerCase();
+    const role = (rawRole || '').trim().toLowerCase();
+    if (name) {
+      this.studentNameFromDb = name;
+    }
+
+    if (role === 'lecturer' || role === 'reviewer') {
+      this.isLecturer = true;
+      this.studentLevel = '';
+      this.dbAcademicLevelLocked = true;
+      if (this.publicationType === 'Thesis' || this.publicationType === 'Dissertation') {
+        this.publicationType = '';
+      }
+      return;
+    }
+
+    this.isLecturer = false;
+    if (lvl.includes('master')) {
+      this.studentLevel = 'masters';
+      this.dbAcademicLevelLocked = true;
+      if (this.publicationType === 'Dissertation') {
+        this.publicationType = 'Thesis';
+      }
+    } else if (lvl.includes('phd') || lvl.includes('doc')) {
+      this.studentLevel = 'phd';
+      this.dbAcademicLevelLocked = true;
+      if (this.publicationType === 'Thesis') {
+        this.publicationType = 'Dissertation';
+      }
+    } else {
+      this.dbAcademicLevelLocked = false;
+    }
+  }
+
+  onSubmittedByChange(value: string): void {
+    this.submittedBy = value;
+    delete this.fieldErrors['submittedBy'];
+
+    const trimmed = (value || '').trim();
+    if (trimmed.length >= 4) {
+      this.lookupUserAcademicLevel(trimmed);
+    } else {
+      this.dbAcademicLevelLocked = false;
+      this.isLecturer = false;
+      this.studentNameFromDb = '';
+    }
+  }
+
+  lookupUserAcademicLevel(identifier: string): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const cleanId = (identifier || '').trim();
+    if (!cleanId) return;
+
+    this.http.get<any>(`${this.userLookupUrl}/${encodeURIComponent(cleanId)}`).subscribe({
+      next: profile => {
+        if (profile) {
+          this.applyUserProfileFromDb(profile.academic_level, profile.name || '', profile.role || '');
+        } else {
+          this.dbAcademicLevelLocked = false;
+          this.isLecturer = false;
+          this.studentNameFromDb = '';
+        }
+      },
+      error: () => {
+        this.dbAcademicLevelLocked = false;
+        this.studentNameFromDb = '';
+      }
+    });
+  }
+
   onStudentLevelChange(level: 'masters' | 'phd'): void {
+    if (this.dbAcademicLevelLocked) return;
+
     this.studentLevel = level;
     try {
       localStorage.setItem('student_academic_level', level);
@@ -118,7 +211,6 @@ export class SubmitPublicationComponent {
           'Theses are reserved for Master\'s students. PhD students must submit a Dissertation.';
       } else {
         this.studentLevel = 'masters';
-        try { localStorage.setItem('student_academic_level', 'masters'); } catch {}
         delete this.fieldErrors['publicationType'];
       }
     } else if (this.publicationType === 'Dissertation') {
@@ -127,7 +219,6 @@ export class SubmitPublicationComponent {
           'Dissertations are reserved for PhD students. Master\'s students must submit a Thesis.';
       } else {
         this.studentLevel = 'phd';
-        try { localStorage.setItem('student_academic_level', 'phd'); } catch {}
         delete this.fieldErrors['publicationType'];
       }
     } else {
@@ -338,6 +429,14 @@ export class SubmitPublicationComponent {
               ? '\nPublication Reference: ' + reference
               : '')
           );
+
+          this.title = '';
+          this.abstract = '';
+          this.keywords = '';
+          this.publicationType = '';
+          this.authors = [''];
+          this.selectedFile = null;
+          this.fieldErrors = {};
         },
 
         error: error => {

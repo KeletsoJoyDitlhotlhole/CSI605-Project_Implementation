@@ -4,6 +4,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { Component, Inject, OnInit, OnDestroy, PLATFORM_ID, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PublicationService } from '../../services/publication.service';
+import { AuthService } from '../../services/auth.service';
 import { PubStatus, ReviewComment } from '../../models/publication.model';
 import { FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -16,7 +17,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 })
 
 export class ReviewPublicationDetail implements OnInit, OnDestroy {
-  pub: any= null;
+  pub: any = null;
   publicationId: string | null = null;
 
   // Toggle show form for reviewer comments
@@ -61,9 +62,16 @@ export class ReviewPublicationDetail implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private publicationService: PublicationService,
+    private authService: AuthService,
     private sanitizer: DomSanitizer,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
+
+  get isOwnPublication(): boolean {
+    const currentId = (this.authService.currentUser()?.id || '').trim().toLowerCase();
+    const submittedBy = (this.pub?.submitted_by || '').trim().toLowerCase();
+    return !!currentId && !!submittedBy && currentId === submittedBy;
+  }
 
   ngOnInit(): void {
     this.publicationId = this.route.snapshot.paramMap.get("id");
@@ -98,12 +106,12 @@ export class ReviewPublicationDetail implements OnInit, OnDestroy {
    * 
    * e.g., if this.showForm is true, it then negated to false.
    */
-  toggleForm():void {
+  toggleForm(): void {
     this.showForm = !this.showForm;
   }
 
   /**
-   * Load avaialbe comments
+   * Load available comments
    */
   loadComments(): void {
     if (!this.publicationId) return;
@@ -112,17 +120,17 @@ export class ReviewPublicationDetail implements OnInit, OnDestroy {
       .getComments(this.publicationId)
       .subscribe({
         next: list => this.comments.set(list),
-        error: err => {
-          console.log("Faile to loads review comments");
+        error: () => {
+          console.log("Failed to load review comments");
           this.commentError.set("Failed to load review comments");
         }
-      })
+      });
   }
 
   /**
    * Cancel a comment
    */
-  cancelComment():void {
+  cancelComment(): void {
     this.commentForm.reset();
     this.showForm = false;
     this.commentError.set('');
@@ -131,7 +139,7 @@ export class ReviewPublicationDetail implements OnInit, OnDestroy {
   /**
    * Submit and register review comments
    */
-  submitComment():void {
+  submitComment(): void {
     if (!this.publicationId || this.savingComment()) return;
 
     if (this.commentForm.invalid) {
@@ -146,7 +154,7 @@ export class ReviewPublicationDetail implements OnInit, OnDestroy {
       .addComment(this.publicationId, this.commentForm.getRawValue())
       .subscribe({
         next: created => {
-          this.comments.update(list => [...list, created]);
+          this.comments.update(list => [created, ...list]);
           this.commentForm.reset();
           this.showForm = false;
           this.savingComment.set(false);
@@ -161,11 +169,6 @@ export class ReviewPublicationDetail implements OnInit, OnDestroy {
 
   onShowPub(): void {
     if (!this.publicationId) return;
-
-    // if (this.showPdf) { 
-    //   this.showPdf = false;
-    //   return; 
-    // }
 
     if (this.pdfUrl()) {
       this.showPdf.update(v => !v);
@@ -198,13 +201,13 @@ export class ReviewPublicationDetail implements OnInit, OnDestroy {
   }
 
   onApprove(): void {
-    this.onChangeStatus('Approved' as PubStatus);
+    this.onChangeStatus('Approved');
   }
   onReject(): void {
-    this.onChangeStatus('Rejected' as PubStatus);
+    this.onChangeStatus('Rejected');
   }
 
-  onChangeStatus(status: PubStatus):void {
+  onChangeStatus(status: PubStatus): void {
     // makes this.publicationId string by default
     if (!this.publicationId) return;
 
@@ -218,13 +221,14 @@ export class ReviewPublicationDetail implements OnInit, OnDestroy {
     .subscribe({
       next: res => {
         this.status.set(res.status);
-        this.message.set(status === 'approved' ? 'Publication approved' : 'Publication rejected')
+        const approved = (res.status || status).toLowerCase() === 'approved';
+        this.message.set(approved ? 'Publication approved' : 'Publication rejected');
       },
       error: err => {
         console.log('Failed to update publication status', err);
         this.error.set(err.error?.error ?? "The status could not be updated at this time. Please try again later.");
       }
-    })
+    });
   }
 
   ngOnDestroy(): void {

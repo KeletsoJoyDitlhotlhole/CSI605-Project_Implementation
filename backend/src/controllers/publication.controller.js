@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const fsPromises = require("fs/promises");
 const path = require("path");
+const emailService = require("../services/email.service");
 
 // Publication statuses that will need attention from a reviewer
 const REVIEW_STATUSES = ["submitted", "pending", "rejected"];
@@ -29,6 +30,15 @@ exports.getAllPublcations = async (req, res) => {
 
         const conditions = [];
         const values = [];
+
+        // 0. Visibility rules by role:
+        //    - Guests (not signed in) and Students: only Approved publications
+        //    - Lecturers / Reviewers / Admins: all publications
+        const userRoles = (req.user?.roles || []).map(r => r.toLowerCase());
+        const isStaff = userRoles.some(r => r === 'lecturer' || r === 'reviewer' || r === 'admin');
+        if (!isStaff) {
+            conditions.push(`LOWER(pub.status) = 'approved'`);
+        }
 
         // 1. Text Search across title, abstract, keywords, reference, submitter, and authors
         if (search && search.trim()) {
@@ -174,6 +184,7 @@ exports.getPublicationById = async (req, res) => {
             pub.abstract,
             pub.keywords,
             pub.status,
+            pub.submitted_by,
             pub.publication_type,
             pub.academic_level,
             pub.created_at,
@@ -222,7 +233,14 @@ exports.getPublicationById = async (req, res) => {
         if (result.rowCount === 0) {
             return res.status(404).json({ error: "The publication you are looking for does not exist" });
         }
-        return res.status(200).json(result.rows[0]);
+        const row = result.rows[0];
+        const isApproved = (row.status || '').toLowerCase() === 'approved';
+        const userRoles = (req.user?.roles || []).map(r => r.toLowerCase());
+        const isStaff = userRoles.some(r => r === 'lecturer' || r === 'reviewer' || r === 'admin');
+        if (!isApproved && !isStaff) {
+            return res.status(404).json({ error: "The publication you are looking for does not exist" });
+        }
+        return res.status(200).json(row);
     } catch (err) {
         console.error({ error: err.message });
         return res.status(500).json({ error: err.message });
@@ -230,10 +248,12 @@ exports.getPublicationById = async (req, res) => {
 };
 
 // Get all publications that have to be reviewed with pagination
+// Excludes publications submitted by the currently logged-in lecturer so they cannot review their own work
 exports.getReviewList = async (req, res) => {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 30);
     const offset = (page - 1) * limit;
+    const currentUserId = req.user?.id || null;
 
     const sqlList = `
         SELECT 
@@ -243,6 +263,7 @@ exports.getReviewList = async (req, res) => {
             pub.abstract,
             pub.keywords,
             pub.status,
+            pub.submitted_by,
             pub.publication_type,
             pub.academic_level,
             pub.created_at,
@@ -284,17 +305,22 @@ exports.getReviewList = async (req, res) => {
             pub.lecturer_id = l.user_id
         WHERE
             LOWER(pub.status) = ANY($1)
+            AND ($2::text IS NULL OR pub.submitted_by <> $2)
         ORDER BY 
             pub.created_at 
         DESC
-        LIMIT $2 OFFSET $3`;
+        LIMIT $3 OFFSET $4`;
 
-    const sqlCount = `SELECT COUNT(*)::int AS total FROM public."Publications" WHERE LOWER(status) = ANY($1)`;
+    const sqlCount = `
+        SELECT COUNT(*)::int AS total
+        FROM public."Publications"
+        WHERE LOWER(status) = ANY($1)
+          AND ($2::text IS NULL OR submitted_by <> $2)`;
 
     try {
         const [list, count] = await Promise.all([
-            db.query(sqlList, [REVIEW_STATUSES, limit, offset]),
-            db.query(sqlCount, [REVIEW_STATUSES])
+            db.query(sqlList, [REVIEW_STATUSES, currentUserId, limit, offset]),
+            db.query(sqlCount, [REVIEW_STATUSES, currentUserId])
         ]);
 
         const total = count.rows[0].total;
@@ -326,18 +352,32 @@ exports.updatePubStatus = async (req, res) => {
         return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
     }
 
-    const client = await db.connect();
+    // "changed_by" is a foreign key to Users(user_id) — the reviewer must be a registered user
+    if (!req.user?.registered) {
+        return res.status(403).json({ error: "Your account is not registered in the publications database, so the decision cannot be recorded." });
+    }
+    const changedBy = req.user.id;
+
+    let client;
     try {
+        client = await db.connect();
         await client.query("BEGIN");
 
         const prevRes = await client.query(
-            `SELECT status FROM public."Publications" WHERE publication_id = $1`,
+            `SELECT status, submitted_by FROM public."Publications" WHERE publication_id = $1`,
             [req.params.id]
         );
 
         if (prevRes.rowCount === 0) {
             await client.query("ROLLBACK");
             return res.status(404).json({ error: "The publication you are looking for does not exist" });
+        }
+
+        if (prevRes.rows[0].submitted_by && prevRes.rows[0].submitted_by === changedBy) {
+            await client.query("ROLLBACK");
+            return res.status(403).json({
+                error: "You cannot review, approve, or reject a publication that you submitted yourself. Another lecturer must review it."
+            });
         }
 
         const previousStatus = prevRes.rows[0].status;
@@ -357,30 +397,88 @@ exports.updatePubStatus = async (req, res) => {
 
         const result = await client.query(updateSql, [normalizedStatus, req.params.id]);
 
-        const changedBy = (req.user?.id || 'LEC000001').substring(0, 9);
+        // Use explicit comments from request body or fall back to the latest comment in "Review Comments"
+        let decisionComments = (req.body.comments || '').trim();
+        if (!decisionComments) {
+            const latestCommentRes = await client.query(
+                `SELECT title, details FROM public."Review Comments" WHERE publication_id = $1 ORDER BY created_at DESC LIMIT 1`,
+                [req.params.id]
+            );
+            if (latestCommentRes.rowCount > 0) {
+                const c = latestCommentRes.rows[0];
+                decisionComments = `${c.title}: ${c.details}`;
+            }
+        }
+
         await client.query(`
             INSERT INTO public."Publication Status History"
                 (publication_id, previous_status, new_status, changed_by, changed_at, comments)
             VALUES ($1, $2, $3, $4, now(), $5)
-        `, [req.params.id, previousStatus, normalizedStatus, changedBy, `Status updated to ${normalizedStatus}`]);
+        `, [req.params.id, previousStatus, normalizedStatus, changedBy, decisionComments || `Status updated to ${normalizedStatus}`]);
+
+        // Fetch student & reviewer details for email notification
+        const notifyDetails = await client.query(`
+            SELECT 
+                pub.title, 
+                pub.publication_reference, 
+                u.email AS student_email, 
+                u.firstname AS student_firstname, 
+                u.surname AS student_surname,
+                l.firstname AS reviewer_firstname,
+                l.surname AS reviewer_surname
+            FROM public."Publications" pub
+            JOIN public."Users" u ON pub.submitted_by = u.user_id
+            LEFT JOIN public."Users" l ON l.user_id = $2
+            WHERE pub.publication_id = $1
+            LIMIT 1
+        `, [req.params.id, changedBy]);
 
         await client.query("COMMIT");
+
+        // Send email notification to student via MailHog
+        const pubInfo = notifyDetails.rows[0];
+        if (pubInfo && pubInfo.student_email) {
+            const studentName = `${pubInfo.student_firstname || ''} ${pubInfo.student_surname || ''}`.trim();
+            const reviewerName = `${pubInfo.reviewer_firstname || ''} ${pubInfo.reviewer_surname || ''}`.trim() || 'Assigned Lecturer';
+            emailService.sendReviewDecisionNotification({
+                studentEmail: pubInfo.student_email,
+                studentName,
+                title: pubInfo.title,
+                reference: pubInfo.publication_reference,
+                status: normalizedStatus,
+                comments: decisionComments,
+                reviewerName,
+            }).catch(err => console.error('[Notification] Review decision email error:', err.message));
+        }
+
         return res.status(200).json(result.rows[0]);
     } catch (err) {
-        await client.query("ROLLBACK");
+        if (client) {
+            await client.query("ROLLBACK").catch(() => {});
+        }
         console.error({ err: err.message });
         return res.status(500).json({ error: err.message });
     } finally {
-        client.release();
+        if (client) client.release();
     }
 };
 
 // Get publication file (stream PDF)
 exports.getPubFile = async (req, res) => {
-    const sql = `SELECT original_filename, stored_filename FROM "Publication File" WHERE publication_id = $1 ORDER BY uploaded_at DESC LIMIT 1`;
+    // Guests and Students may only download files of approved publications; Staff may download any
+    const userRoles = (req.user?.roles || []).map(r => r.toLowerCase());
+    const isStaff = userRoles.some(r => r === 'lecturer' || r === 'reviewer' || r === 'admin');
+    const sql = `
+        SELECT f.original_filename, f.stored_filename
+        FROM "Publication File" f
+        JOIN "Publications" p ON p.publication_id = f.publication_id
+        WHERE f.publication_id = $1
+          AND ($2::boolean OR LOWER(p.status) = 'approved')
+        ORDER BY f.uploaded_at DESC
+        LIMIT 1`;
 
     try {
-        const result = await db.query(sql, [req.params.id]);
+        const result = await db.query(sql, [req.params.id, isStaff]);
 
         if (result.rowCount === 0)
             return res.status(404).json({ message: "The publication file was not found" });
@@ -394,8 +492,17 @@ exports.getPubFile = async (req, res) => {
             return res.status(404).json({ message: "The publication file is missing." });
 
         res.setHeader("Content-Type", "application/pdf");
-        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(original_filename)}"`);
-        fs.createReadStream(filePath).pipe(res);
+        res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(original_filename)}`);
+        const stream = fs.createReadStream(filePath);
+        stream.on("error", (streamErr) => {
+            console.error("File stream error:", streamErr.message);
+            if (!res.headersSent) {
+                res.status(500).json({ message: "We failed to load the publication file" });
+            } else {
+                res.destroy(streamErr);
+            }
+        });
+        stream.pipe(res);
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "We failed to load the publication file" });
@@ -442,13 +549,32 @@ exports.createReviewComment = async (req, res) => {
             id, title, details, created_at as "createdAt", reviewer_id as "reviewerId"
         `;
 
-    const reviewerId = (req.user?.id || 'LEC000001').substring(0, 50);
+    const reviewerId = (req.user?.id || '').substring(0, 50) || null;
 
     try {
+        const pubCheck = await db.query(
+            `SELECT submitted_by FROM public."Publications" WHERE publication_id = $1`,
+            [req.params.id]
+        );
+        if (pubCheck.rowCount === 0) {
+            return res.status(404).json({ message: "The publication you are commenting on does not exist." });
+        }
+        if (reviewerId && pubCheck.rows[0].submitted_by === reviewerId) {
+            return res.status(403).json({
+                message: "You cannot add review comments to your own publication. Another lecturer must review it."
+            });
+        }
+
         const result = await db.query(sql, [req.params.id, reviewerId, title, details]);
         return res.status(201).json(result.rows[0]);
     } catch (err) {
         console.error({ message: err.message });
+        if (err.code === '23503') {
+            return res.status(404).json({ message: "The publication you are commenting on does not exist." });
+        }
+        if (err.code === '22001') {
+            return res.status(400).json({ message: "Comment title must not exceed 150 characters." });
+        }
         return res.status(500).json({ message: "Failed to save review comment." });
     }
 };
@@ -490,7 +616,10 @@ const submitPublication = async (req, res) => {
       });
     }
 
-    const cleanSubmittedBy = (submittedBy || req.user?.id || '').trim();
+    // Use the explicit submittedBy Student ID if provided, or fall back to the signed-in user's DB ID
+    const requestedSubmitter = typeof submittedBy === 'string' ? submittedBy.trim() : '';
+    const tokenSubmitter = req.user?.registered ? req.user.id : (req.user?.id || '');
+    const cleanSubmittedBy = (requestedSubmitter || tokenSubmitter || '').trim();
     if (!cleanSubmittedBy) {
       return res.status(400).json({
         success: false,
@@ -555,9 +684,15 @@ const submitPublication = async (req, res) => {
       `
       SELECT
         s.user_id,
+        s.firstname AS student_firstname,
+        s.surname AS student_surname,
+        s.email AS student_email,
         s.role,
         s.supervisor_id,
         s.academic_level,
+        l.firstname AS lecturer_firstname,
+        l.surname AS lecturer_surname,
+        l.email AS lecturer_email,
         l.role AS supervisor_role
       FROM "Users" s
       LEFT JOIN "Users" l
@@ -579,7 +714,8 @@ const submitPublication = async (req, res) => {
     }
 
     const user = userResult.rows[0];
-    const roleLower = user.role?.toLowerCase();
+    let roleLower = (user.role || '').trim().toLowerCase();
+    if (roleLower.includes('admin')) roleLower = 'admin'; // e.g. "System Admin"
 
     if (roleLower !== 'student' && roleLower !== 'admin' && roleLower !== 'lecturer' && roleLower !== 'reviewer') {
       await client.query('ROLLBACK');
@@ -591,10 +727,24 @@ const submitPublication = async (req, res) => {
       });
     }
 
-    // Enforce rule: Thesis is for Master's students, Dissertation is for PhD students
-    const cleanStudentLevel = (req.body.studentLevel || req.body.academicLevel || user.academic_level || '').toLowerCase();
-    const isMasters = cleanStudentLevel.includes('master') || (req.user?.roles || []).some(r => r.toLowerCase().includes('master'));
-    const isPhd = cleanStudentLevel.includes('phd') || cleanStudentLevel.includes('doc') || (req.user?.roles || []).some(r => r.toLowerCase().includes('phd'));
+    // Enforce rule for Lecturers: Lecturers only submit Journal Articles or Conference Papers (no Thesis or Dissertation)
+    if ((roleLower === 'lecturer' || roleLower === 'reviewer') && (cleanPubType === 'Thesis' || cleanPubType === 'Dissertation')) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+
+      return res.status(400).json({
+        success: false,
+        message: 'Lecturers can only submit Journal Articles or Conference Papers. Theses and Dissertations are reserved for graduate students.'
+      });
+    }
+
+    // Enforce rule from Users.academic_level in the database:
+    // Master's students see/submit Thesis; PhD students see/submit Dissertation
+    const dbLevel = (user.academic_level || '').toLowerCase();
+    const fallbackLevel = (req.body.studentLevel || req.body.academicLevel || '').toLowerCase();
+    const effectiveLevel = dbLevel || fallbackLevel;
+    const isMasters = effectiveLevel.includes('master');
+    const isPhd = effectiveLevel.includes('phd') || effectiveLevel.includes('doc');
 
     if (isMasters && cleanPubType === 'Dissertation') {
       await client.query('ROLLBACK');
@@ -617,27 +767,51 @@ const submitPublication = async (req, res) => {
     }
 
     let academicLevelToSave = user.academic_level || null;
-    if (cleanPubType === 'Thesis') {
-      academicLevelToSave = "Master's";
-    } else if (cleanPubType === 'Dissertation') {
-      academicLevelToSave = "PhD";
-    } else if (cleanStudentLevel.includes('master')) {
-      academicLevelToSave = "Master's";
-    } else if (cleanStudentLevel.includes('phd')) {
-      academicLevelToSave = "PhD";
+    if (!academicLevelToSave) {
+      if (cleanPubType === 'Thesis' || isMasters) {
+        academicLevelToSave = "Master's";
+      } else if (cleanPubType === 'Dissertation' || isPhd) {
+        academicLevelToSave = "PhD";
+      }
     }
 
-    // If submitter is a lecturer, they can self-supervise or assign another lecturer
+    // If submitter is a lecturer, assign ANOTHER lecturer to review it (never self-review)
     if (roleLower === 'lecturer' || roleLower === 'reviewer') {
-      if (!user.supervisor_id) {
-        user.supervisor_id = user.user_id;
-        user.supervisor_role = 'Lecturer';
+      if (!user.supervisor_id || user.supervisor_id === user.user_id) {
+        const peerLecturer = await client.query(
+          `SELECT user_id, role, firstname, surname, email
+           FROM "Users"
+           WHERE LOWER(role) IN ('lecturer', 'reviewer')
+             AND user_id <> $1
+           ORDER BY user_id ASC
+           LIMIT 1`,
+          [user.user_id]
+        );
+
+        if (peerLecturer.rows.length > 0) {
+          user.supervisor_id = peerLecturer.rows[0].user_id;
+          user.supervisor_role = peerLecturer.rows[0].role;
+          user.lecturer_firstname = peerLecturer.rows[0].firstname;
+          user.lecturer_surname = peerLecturer.rows[0].surname;
+          user.lecturer_email = peerLecturer.rows[0].email;
+        } else {
+          await client.query('ROLLBACK');
+          transactionStarted = false;
+
+          return res.status(400).json({
+            success: false,
+            message: 'Another lecturer is required to review your publication, but no other lecturer was found.'
+          });
+        }
       }
     } else if (!user.supervisor_id || user.supervisor_role?.toLowerCase() !== 'lecturer') {
-      const defaultLecturer = await client.query(`SELECT user_id, role FROM "Users" WHERE LOWER(role) = 'lecturer' LIMIT 1`);
+      const defaultLecturer = await client.query(`SELECT user_id, role, firstname, surname, email FROM "Users" WHERE LOWER(role) = 'lecturer' LIMIT 1`);
       if (defaultLecturer.rows.length > 0) {
         user.supervisor_id = defaultLecturer.rows[0].user_id;
         user.supervisor_role = defaultLecturer.rows[0].role;
+        user.lecturer_firstname = defaultLecturer.rows[0].firstname;
+        user.lecturer_surname = defaultLecturer.rows[0].surname;
+        user.lecturer_email = defaultLecturer.rows[0].email;
       } else {
         await client.query('ROLLBACK');
         transactionStarted = false;
@@ -783,6 +957,35 @@ const submitPublication = async (req, res) => {
     await client.query('COMMIT');
     transactionStarted = false;
     submissionSucceeded = true;
+
+    // Send email notification to the student (and assigned lecturer) via MailHog
+    const studentFullName = `${user.student_firstname || ''} ${user.student_surname || ''}`.trim() || user.user_id;
+    const lecturerFullName = `${user.lecturer_firstname || ''} ${user.lecturer_surname || ''}`.trim() || user.supervisor_id;
+
+    if (user.student_email) {
+      emailService.sendSubmissionConfirmation({
+        studentEmail: user.student_email,
+        studentName: studentFullName,
+        title: cleanTitle,
+        reference: publicationReference,
+        publicationType: cleanPubType,
+        academicLevel: academicLevelToSave,
+        lecturerName: lecturerFullName,
+        lecturerEmail: user.lecturer_email,
+      }).catch(err => console.error('[Notification] Student submission email error:', err.message));
+    }
+
+    if (user.lecturer_email) {
+      emailService.sendLecturerAssignmentNotification({
+        lecturerEmail: user.lecturer_email,
+        lecturerName: lecturerFullName,
+        studentName: studentFullName,
+        studentEmail: user.student_email,
+        title: cleanTitle,
+        reference: publicationReference,
+        publicationType: cleanPubType,
+      }).catch(err => console.error('[Notification] Lecturer assignment email error:', err.message));
+    }
 
     return res.status(201).json({
       success: true,

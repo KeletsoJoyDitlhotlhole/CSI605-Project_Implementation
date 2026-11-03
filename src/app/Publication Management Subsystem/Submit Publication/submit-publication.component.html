@@ -79,15 +79,21 @@
         </small>
       </div>
 
-      <!-- Academic Level / Degree Program -->
-      <div class="form-group academic-level-group">
+      <!-- Academic Level / Degree Program (Synced from Users.academic_level in DB; hidden for Lecturers) -->
+      <div class="form-group academic-level-group" *ngIf="!isLecturer">
         <label>
           Academic Program / Level <span>*</span>
         </label>
-        <p class="field-hint">Select your current graduate degree to filter the required submission type:</p>
+        <p class="field-hint" *ngIf="dbAcademicLevelLocked">
+          Academic level loaded from your student profile in the database{{ studentNameFromDb ? ' (' + studentNameFromDb + ')' : '' }}:
+        </p>
+        <p class="field-hint" *ngIf="!dbAcademicLevelLocked">
+          Select your current graduate degree to filter the required submission type:
+        </p>
 
         <div class="level-selector-pills" role="radiogroup" aria-label="Academic Level">
           <button
+            *ngIf="!dbAcademicLevelLocked || studentLevel === 'masters'"
             type="button"
             class="level-pill"
             [class.active]="studentLevel === 'masters'"
@@ -104,6 +110,7 @@
           </button>
 
           <button
+            *ngIf="!dbAcademicLevelLocked || studentLevel === 'phd'"
             type="button"
             class="level-pill"
             [class.active]="studentLevel === 'phd'"
@@ -278,8 +285,9 @@
           id="submittedBy"
           name="submittedBy"
           type="text"
-          [(ngModel)]="submittedBy"
-          placeholder="e.g. STU000001"
+          [ngModel]="submittedBy"
+          (ngModelChange)="onSubmittedByChange($event)"
+          placeholder="e.g. STU000001 (Master's) or STU000002 (PhD)"
           [class.invalid-field]="fieldErrors['submittedBy']"
           [attr.aria-invalid]="!!fieldErrors['submittedBy']"
         />

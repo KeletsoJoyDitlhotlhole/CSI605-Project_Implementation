@@ -1,4 +1,3 @@
-
 <div class="login-page">
   <header class="top-bar">
     <a routerLink="/login" class="brand">
@@ -89,6 +88,12 @@
             {{ isLoading ? 'Signing In...' : 'Sign In' }} <span>→</span>
           </button>
         </form>
+
+        <div class="guest-access">
+          <a routerLink="/dashboard" class="guest-link" (click)="continueAsGuest()">
+            Guest
+          </a>
+        </div>
 
         <div class="security-note">
           Use your registered University account.

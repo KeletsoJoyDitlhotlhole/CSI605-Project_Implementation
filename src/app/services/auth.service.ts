@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed, PLATFORM_ID } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, throwError, of } from 'rxjs';
+import { Observable, tap, catchError, throwError, of, switchMap, map } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 
 export interface AuthUser {
@@ -48,11 +48,55 @@ export class AuthService {
       const storedUser = localStorage.getItem('auth_user');
       const token = localStorage.getItem('auth_token');
       if (storedUser && token) {
+        const payloadBase64 = token.split('.')[1];
+        if (payloadBase64) {
+          const decoded = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
+          if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+            this.clearStorage();
+            return;
+          }
+        }
         this.currentUser.set(JSON.parse(storedUser));
         this.loadDbProfile();
       }
     } catch {
       this.clearStorage();
+    }
+  }
+
+  private applyDbProfile(profile: any): void {
+    if (!profile) return;
+    const curr = this.currentUser();
+    if (!curr) return;
+
+    const mergedRoles = Array.from(
+      new Set([...(curr.roles || []), ...(Array.isArray(profile.roles) ? profile.roles : [])])
+    );
+
+    const updated: AuthUser = {
+      ...curr,
+      id: profile.id || curr.id,
+      email: profile.email || curr.email,
+      name: profile.name || curr.name,
+      firstName: profile.firstName || curr.firstName,
+      lastName: profile.lastName || curr.lastName,
+      roles: mergedRoles,
+      academic_level: profile.academic_level ?? curr.academic_level
+    };
+
+    this.currentUser.set(updated);
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem('auth_user', JSON.stringify(updated));
+      if (updated.academic_level) {
+        const lvl = updated.academic_level.toLowerCase();
+        if (lvl.includes('master')) {
+          localStorage.setItem('student_academic_level', 'masters');
+        } else if (lvl.includes('phd')) {
+          localStorage.setItem('student_academic_level', 'phd');
+        }
+      } else {
+        localStorage.removeItem('student_academic_level');
+      }
     }
   }
 
@@ -66,30 +110,7 @@ export class AuthService {
     });
 
     this.http.get<any>('http://localhost:3000/api/me', { headers }).subscribe({
-      next: profile => {
-        if (profile) {
-          const curr = this.currentUser();
-          if (curr) {
-            const updated: AuthUser = {
-              ...curr,
-              id: profile.id || curr.id,
-              academic_level: profile.academic_level || curr.academic_level
-            };
-            this.currentUser.set(updated);
-            if (isPlatformBrowser(this.platformId)) {
-              localStorage.setItem('auth_user', JSON.stringify(updated));
-              if (updated.academic_level) {
-                const lvl = updated.academic_level.toLowerCase();
-                if (lvl.includes('master')) {
-                  localStorage.setItem('student_academic_level', 'masters');
-                } else if (lvl.includes('phd')) {
-                  localStorage.setItem('student_academic_level', 'phd');
-                }
-              }
-            }
-          }
-        }
-      },
+      next: profile => this.applyDbProfile(profile),
       error: () => {}
     });
   }
@@ -106,17 +127,28 @@ export class AuthService {
     });
 
     return this.http.post<TokenResponse>(this.keycloakUrl, body.toString(), { headers }).pipe(
-      tap(response => {
-        if (response.access_token) {
-          const user = this.parseToken(response.access_token, username);
-          if (isPlatformBrowser(this.platformId)) {
-            localStorage.setItem('auth_token', response.access_token);
-            localStorage.setItem('auth_user', JSON.stringify(user));
-          }
-          this.currentUser.set(user);
-          // Sync with database profile
-          this.loadDbProfile();
+      switchMap(response => {
+        if (!response.access_token) {
+          return of(response);
         }
+
+        const user = this.parseToken(response.access_token, username);
+        if (isPlatformBrowser(this.platformId)) {
+          localStorage.setItem('auth_token', response.access_token);
+          localStorage.setItem('auth_user', JSON.stringify(user));
+        }
+        this.currentUser.set(user);
+
+        const meHeaders = new HttpHeaders({
+          'Authorization': `Bearer ${response.access_token}`
+        });
+
+        // Fetch DB profile (roles, user_id, academic_level) before completing login
+        return this.http.get<any>('http://localhost:3000/api/me', { headers: meHeaders }).pipe(
+          tap(profile => this.applyDbProfile(profile)),
+          map(() => response),
+          catchError(() => of(response))
+        );
       }),
       catchError(err => {
         let msg = 'Authentication failed. Please check your credentials.';
@@ -168,6 +200,7 @@ export class AuthService {
     if (isPlatformBrowser(this.platformId)) {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
+      localStorage.removeItem('student_academic_level');
     }
   }
 

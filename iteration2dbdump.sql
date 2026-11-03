@@ -175,14 +175,14 @@ JDUBGFGEBFUGEU JOY ITERATION DCDCJOD TESTS 2.1	Test, Iteration, Publication	STU0
 -- Data for Name: Users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Users" (firstname, created_at, updated_at, user_id, surname, email, role, supervisor_id) FROM stdin;
-Keletso	2026-09-30	2026-09-30 21:26:14.937947+02	02002023	Ditlhotlhole	ditlhotlholekeletso1@gmail.com	Student	\N
-Kabelo	2026-10-25	2026-10-25 21:19:33.322744+02	LEC000001	Molefe	kabelo.molefe@example.com	Lecturer	\N
-Naledi	2026-10-25	2026-10-25 21:19:33.322744+02	LEC000002	Kgosidintsi	naledi.kgosidintsi@example.com	Lecturer	\N
-Thabo	2026-10-25	2026-10-25 21:19:33.322744+02	ADM000001	Motsumi	thabo.motsumi@example.com	System Admin	\N
-Lesego	2026-10-25	2026-10-25 21:19:33.322744+02	ADM000002	Banda	lesego.banda@example.com	System Admin	\N
-Thato	2026-10-25	2026-10-25 21:19:33.322744+02	STU000001	Mooketsi	thato.mooketsi@example.com	Student	LEC000001
-Boitumelo	2026-10-25	2026-10-25 21:19:33.322744+02	STU000002	Seboni	boitumelo.seboni@example.com	Student	LEC000002
+COPY public."Users" (firstname, created_at, updated_at, user_id, surname, email, role, supervisor_id, academic_level) FROM stdin;
+Keletso	2026-09-30	2026-09-30 21:26:14.937947+02	02002023	Ditlhotlhole	ditlhotlholekeletso1@gmail.com	Student	LEC000001	Master's
+Kabelo	2026-10-25	2026-10-25 21:19:33.322744+02	LEC000001	Molefe	kabelo.molefe@example.com	Lecturer	\N	\N
+Naledi	2026-10-25	2026-10-25 21:19:33.322744+02	LEC000002	Kgosidintsi	naledi.kgosidintsi@example.com	Lecturer	\N	\N
+Thabo	2026-10-25	2026-10-25 21:19:33.322744+02	ADM000001	Motsumi	thabo.motsumi@example.com	System Admin	\N	\N
+Lesego	2026-10-25	2026-10-25 21:19:33.322744+02	ADM000002	Banda	lesego.banda@example.com	System Admin	\N	\N
+Thato	2026-10-25	2026-10-25 21:19:33.322744+02	STU000001	Mooketsi	thato.mooketsi@example.com	Student	LEC000001	Master's
+Boitumelo	2026-10-25	2026-10-25 21:19:33.322744+02	STU000002	Seboni	boitumelo.seboni@example.com	Student	LEC000002	PhD
 \.
 
 

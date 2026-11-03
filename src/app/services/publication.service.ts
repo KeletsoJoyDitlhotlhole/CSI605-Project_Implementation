@@ -68,7 +68,7 @@ export class PublicationService {
     // get publication file (for review workflow)
     getPubFile(publicationId: string): Observable<Blob> {
         return this._httpClient.get(
-            `${this._apiUrl}review/${publicationId}/file`,
+            `${this._apiUrl}review/${encodeURIComponent(publicationId)}/file`,
             { responseType: 'blob'}
         );
     }
@@ -85,13 +85,13 @@ export class PublicationService {
      * Get comments from the API
      */
     getComments(publicationId: string): Observable<ReviewComment[]> {
-        return this._httpClient.get<ReviewComment[]>(`${this._apiUrl}review/${publicationId}/comments`)
+        return this._httpClient.get<ReviewComment[]>(`${this._apiUrl}review/${encodeURIComponent(publicationId)}/comments`);
     }
 
     /**
      * Create a comment
      */
     addComment(publicationId: string, commentBody: CommentBody) {
-        return this._httpClient.post<ReviewComment>(`${this._apiUrl}review/${publicationId}/comments`, commentBody);
+        return this._httpClient.post<ReviewComment>(`${this._apiUrl}review/${encodeURIComponent(publicationId)}/comments`, commentBody);
     }
 }

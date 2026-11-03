@@ -71,6 +71,8 @@ CREATE TABLE IF NOT EXISTS public."Users"
     surname character varying(50) COLLATE pg_catalog."default" NOT NULL,
     email character varying(50) COLLATE pg_catalog."default" NOT NULL,
     role character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    supervisor_id character varying(9) COLLATE pg_catalog."default",
+    academic_level character varying(50) COLLATE pg_catalog."default",
     CONSTRAINT "Users_pkey" PRIMARY KEY (user_id)
 )
 

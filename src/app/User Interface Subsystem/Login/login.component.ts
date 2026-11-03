@@ -26,6 +26,16 @@ export class Login {
     this.showPassword = !this.showPassword;
   }
 
+  continueAsGuest(): void {
+    try {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('student_academic_level');
+    } catch {}
+    this.authService.currentUser.set(null);
+    this.router.navigate(['/dashboard']);
+  }
+
   login(): void {
     this.errorMessage = '';
 

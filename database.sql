@@ -90,7 +90,9 @@ CREATE TABLE public."Users" (
     user_id character varying(8) NOT NULL,
     surname character varying(50) NOT NULL,
     email character varying(50) NOT NULL,
-    role character varying(50) NOT NULL
+    role character varying(50) NOT NULL,
+    supervisor_id character varying(9),
+    academic_level character varying(50)
 );
 
 
@@ -145,8 +147,8 @@ At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praese
 -- Data for Name: Users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Users" (firstname, created_at, updated_at, user_id, surname, email, role) FROM stdin;
-Tokyo	2026-10-01	2026-10-01 15:42:10.176805+02	U0000001	Nakamura	test@example.com	student
+COPY public."Users" (firstname, created_at, updated_at, user_id, surname, email, role, academic_level) FROM stdin;
+Tokyo	2026-10-01	2026-10-01 15:42:10.176805+02	U0000001	Nakamura	test@example.com	student	Master's
 \.
 
 

@@ -43,14 +43,14 @@
           <span><strong>Submitted:</strong> {{ (pub.submitted_at ?? pub.created_at)}}</span>
         </p>
 
-        <!-- Student → Lecturer reviewer mapping -->
+        <!-- Student / Author → Lecturer reviewer mapping -->
         <div class="reviewer-assignment-block">
           <h4 class="assignment-title">Reviewer Assignment</h4>
           <div class="assignment-map">
             <div class="assignment-party student-party">
               <div class="party-icon">🎓</div>
               <div class="party-info">
-                <span class="party-role">Submitting Student</span>
+                <span class="party-role">Submitted By</span>
                 <span class="party-name">
                   @if (pub.submitter_firstname || pub.submitter_surname) {
                     {{ pub.submitter_firstname }} {{ pub.submitter_surname }}
@@ -119,14 +119,22 @@
           @if (pdfError()) { <p class="err">{{ pdfError() }}</p>}
         </section>
 
+        @if (isOwnPublication) {
+          <p class="message error" role="alert">
+            You are the author of this publication. Another lecturer must review and make a decision on it.
+          </p>
+        }
+
         <section class="feedback">
           <h4>Feedback</h4>
 
-          <button type="button" class="link-btn" (click)="toggleForm()">
-            {{ showForm ? 'Close' : 'Add review feedback' }}
-          </button>
+          @if (!isOwnPublication) {
+            <button type="button" class="link-btn" (click)="toggleForm()">
+              {{ showForm ? 'Close' : 'Add review feedback' }}
+            </button>
+          }
 
-          @if (showForm) {
+          @if (showForm && !isOwnPublication) {
             <form [formGroup]="commentForm" (ngSubmit)="submitComment()" class="comment-form">
               <label for="comment-title">Comment title</label>
               <input id="comment-title" type="text" formControlName="title" maxlength="150" />
@@ -159,7 +167,6 @@
                 <li class="comment">
                   <h5>{{ c.title }}</h5>
                   <p>{{ c.details }}</p>
-                  <!-- <small>{{ c.createdAt | date: 'medium' }}</small> -->
                 </li>
               }
             </ul>
@@ -183,8 +190,10 @@
 
         <div class="review-actions">
           <a type="button" class="btn btn-reject" routerLink="/dashboard" style="text-decoration: none;">Cancel</a>
-          <button type="button" class="btn btn-reject" (click)="onReject()">Reject</button>
-          <button type="button" class="btn btn-approve" (click)="onApprove()">Approve</button>
+          @if (!isOwnPublication) {
+            <button type="button" class="btn btn-reject" (click)="onReject()">Reject</button>
+            <button type="button" class="btn btn-approve" (click)="onApprove()">Approve</button>
+          }
         </div>
 
       </div>

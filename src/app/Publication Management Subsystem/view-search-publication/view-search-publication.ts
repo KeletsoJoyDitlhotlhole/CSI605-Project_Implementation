@@ -6,6 +6,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { PublicationService } from '../../services/publication.service';
+import { AuthService } from '../../services/auth.service';
 import { Publication } from '../../models/publication.model';
 
 @Component({
@@ -17,6 +18,7 @@ import { Publication } from '../../models/publication.model';
 })
 export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
   private publicationService = inject(PublicationService);
+  private authService = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private sanitizer = inject(DomSanitizer);
@@ -59,6 +61,12 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
     const query = this.searchTerm().trim().toLowerCase();
     const typeFilter = this.selectedType().trim().toLowerCase();
     const sortOrder = this.selectedSort();
+
+    // 0. Guests and Students only see Approved publications
+    const isStaff = this.authService.hasAnyRole('lecturer', 'reviewer', 'admin');
+    if (!isStaff) {
+      list = list.filter(pub => (pub.status || '').trim().toLowerCase() === 'approved');
+    }
 
     // 1. Text Search Filter across title, reference, abstract, keywords, authors, submitter
     if (query) {
@@ -162,6 +170,7 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
     this.subscriptions.push(searchSub);
 
     // Read route query params on initialization and changes
+    let initialLoadDone = false;
     const routeSub = this.route.queryParamMap.subscribe(params => {
       const qSearch = params.get('search') || '';
       const qType = params.get('type') || 'all';
@@ -176,7 +185,20 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
       this.page.set(qPage > 0 ? qPage : 1);
       this.pageSize.set(qLimit > 0 ? qLimit : 10);
 
-      this.loadPublications(qPubId);
+      if (!isPlatformBrowser(this.platformId)) {
+        this.isLoading.set(false);
+        return;
+      }
+
+      if (!initialLoadDone) {
+        initialLoadDone = true;
+        this.loadPublications(qPubId);
+      } else if (qPubId && (!this.selectedPublication() || this.selectedPublication()?.publication_id !== qPubId)) {
+        const match = this.rawPublications().find(p => p.publication_id === qPubId);
+        if (match) {
+          this.openPublicationDetails(match);
+        }
+      }
     });
     this.subscriptions.push(routeSub);
   }
@@ -399,17 +421,17 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
   }
 
   private loadPublications(openPubId?: string | null): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      this.isLoading.set(false);
+      return;
+    }
+
     this.isLoading.set(true);
     this.errorMessage.set('');
 
+    // Fetch the full list so client-side search, filter, sort, total count, and pagination slice operate over all records
     this.publicationService
-      .searchPublications({
-        search: this.searchTerm(),
-        type: this.selectedType(),
-        sort: this.selectedSort(),
-        page: this.page(),
-        limit: this.pageSize()
-      })
+      .fetchAllPublications()
       .subscribe({
         next: (res) => {
           this.rawPublications.set(res.publications || []);

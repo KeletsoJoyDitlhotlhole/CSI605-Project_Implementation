@@ -448,6 +448,26 @@ $text-muted: #94a3b8;
   border-radius: 4px;
 }
 
+.status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: capitalize;
+  color: #92400e;
+  background: #fef3c7;
+
+  &[data-status="approved"] {
+    color: #166534;
+    background: #dcfce7;
+  }
+
+  &[data-status="rejected"] {
+    color: #991b1b;
+    background: #fee2e2;
+  }
+}
+
 .card-date {
   font-size: 12px;
   font-weight: 600;

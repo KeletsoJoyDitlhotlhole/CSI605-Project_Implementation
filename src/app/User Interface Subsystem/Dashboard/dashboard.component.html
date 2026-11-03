@@ -98,6 +98,10 @@
               <span><strong>User ID:</strong> {{ user()?.id }}</span>
               <span class="meta-separator">•</span>
               <span><strong>Email:</strong> {{ user()?.email || 'N/A' }}</span>
+              @if (user()?.academic_level) {
+                <span class="meta-separator">•</span>
+                <span><strong>Academic Level:</strong> {{ user()?.academic_level }}</span>
+              }
               <span class="meta-separator">•</span>
               <span><strong>Authorized Roles:</strong> {{ user()?.roles?.join(', ') || 'user' }}</span>
             } @else {
@@ -208,11 +212,11 @@
         <p>
           You are currently logged in as a <strong>{{ roleLabel() }}</strong>. Your dashboard displays only the cards and functionalities authorized for your role.
           @if (authService.hasRole('student')) {
-            Students can submit new research papers and browse the repository.
+            Students can submit new research papers and browse approved publications in the repository.
           } @else if (authService.hasAnyRole('lecturer', 'reviewer')) {
-            Lecturers can submit research publications, review student papers, and issue evaluation decisions.
+            Lecturers can submit research publications, review student and peer papers, and issue evaluation decisions.
           } @else if (authService.hasRole('admin')) {
-            Administrators have unrestricted access to all submission, review, profile management, and analytical tools.
+            Administrators have unrestricted access to all submission, review, and institutional reporting tools. User profiles and roles are centrally managed in Keycloak.
           }
         </p>
       </div>
@@ -221,148 +225,254 @@
   </main>
 
   <!-- =====================================================
-       MODAL: Manage Profiles (Admin Functionality)
-       ===================================================== -->
-  @if (activeModal() === 'profiles') {
-    <div class="modal-backdrop" (click)="closeModal()" role="presentation">
-      <div class="modal-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modalProfilesTitle">
-        <div class="modal-header">
-          <div class="modal-title-group">
-            <span class="modal-eyebrow">ADMINISTRATION WORKSPACE</span>
-            <h3 id="modalProfilesTitle">Manage User Profiles &amp; Roles</h3>
-          </div>
-          <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Close dialog">✕</button>
-        </div>
-
-        <div class="modal-body">
-          <p class="modal-intro">
-            Overview of the University of Botswana authentication realm and registered system accounts:
-          </p>
-
-          <div class="accounts-table-wrapper">
-            <table class="accounts-table">
-              <thead>
-                <tr>
-                  <th>User ID</th>
-                  <th>Full Name</th>
-                  <th>Username</th>
-                  <th>Role</th>
-                  <th>Permissions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>U0000001</code></td>
-                  <td><strong>Tokyo Nakamura</strong></td>
-                  <td><code>student1</code></td>
-                  <td><span class="role-badge badge-student">Student</span></td>
-                  <td>Submit publications, browse repository</td>
-                </tr>
-                <tr>
-                  <td><code>U0000002</code></td>
-                  <td><strong>Keletso Ditlhotlhole</strong></td>
-                  <td><code>lecturer1</code> / <code>reviewer1</code></td>
-                  <td><span class="role-badge badge-lecturer">Lecturer</span></td>
-                  <td>Submit publications, review student papers, approve/reject</td>
-                </tr>
-                <tr>
-                  <td><code>U0000003</code></td>
-                  <td><strong>Admin User</strong></td>
-                  <td><code>admin1</code></td>
-                  <td><span class="role-badge badge-admin">Admin</span></td>
-                  <td>Full access: submit, review, profiles, reports</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="current-session-card">
-            <h4>Current Active Session</h4>
-            <div class="session-grid">
-              <div><strong>Active Name:</strong> {{ user()?.name }}</div>
-              <div><strong>Username:</strong> {{ user()?.username }}</div>
-              <div><strong>User ID:</strong> {{ user()?.id }}</div>
-              <div><strong>Email:</strong> {{ user()?.email }}</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary" (click)="closeModal()">Done</button>
-        </div>
-      </div>
-    </div>
-  }
-
-  <!-- =====================================================
-       MODAL: Generate Report (Admin Functionality)
+       MODAL: Generate Report (Detailed Admin Functionality)
        ===================================================== -->
   @if (activeModal() === 'reports') {
     <div class="modal-backdrop" (click)="closeModal()" role="presentation">
-      <div class="modal-dialog modal-dialog--wide" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modalReportsTitle">
+      <div class="modal-dialog modal-dialog--xl" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modalReportsTitle">
         <div class="modal-header">
           <div class="modal-title-group">
-            <span class="modal-eyebrow">RESEARCH ANALYTICS</span>
-            <h3 id="modalReportsTitle">Generate Publication Report</h3>
+            <span class="modal-eyebrow">INSTITUTIONAL RESEARCH ANALYTICS</span>
+            <h3 id="modalReportsTitle">Detailed Publication &amp; Review Report</h3>
           </div>
           <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Close dialog">✕</button>
         </div>
 
         <div class="modal-body">
-          <div class="report-summary-cards">
-            <div class="report-stat-card">
-              <span class="stat-number">{{ totalPublications() !== null ? totalPublications() : '—' }}</span>
-              <span class="stat-desc">Total Submissions</span>
-            </div>
-            <div class="report-stat-card">
-              <span class="stat-number">{{ pendingReviews() !== null ? pendingReviews() : '0' }}</span>
-              <span class="stat-desc">Pending Review</span>
-            </div>
-            <div class="report-stat-card">
-              <span class="stat-number">Active</span>
-              <span class="stat-desc">Peer Evaluation Cycle</span>
-            </div>
-          </div>
-
-          <div class="report-section">
-            <h4>Report Parameters</h4>
+          <!-- Report Filters & Timestamp -->
+          <div class="report-toolbar">
             <div class="report-params">
               <label>
-                Academic Year:
-                <select class="report-select">
-                  <option>2025 / 2026</option>
-                  <option>2024 / 2025</option>
-                  <option>All Historical Records</option>
+                Filter by Status:
+                <select
+                  class="report-select"
+                  [ngModel]="reportStatusFilter()"
+                  (ngModelChange)="reportStatusFilter.set($event)"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="approved">Approved Only</option>
+                  <option value="pending">Pending Review Only</option>
+                  <option value="rejected">Rejected Only</option>
                 </select>
               </label>
 
               <label>
-                Department / Faculty:
-                <select class="report-select">
-                  <option>All Departments</option>
-                  <option>Computer Science</option>
-                  <option>Engineering &amp; Technology</option>
-                  <option>Science &amp; Mathematics</option>
+                Filter by Publication Type:
+                <select
+                  class="report-select"
+                  [ngModel]="reportTypeFilter()"
+                  (ngModelChange)="reportTypeFilter.set($event)"
+                >
+                  <option value="all">All Publication Types</option>
+                  <option value="Journal Article">Journal Article</option>
+                  <option value="Conference Paper">Conference Paper</option>
+                  <option value="Thesis">Thesis (Master's)</option>
+                  <option value="Dissertation">Dissertation (PhD)</option>
                 </select>
               </label>
             </div>
+
+            <div class="report-meta-stamp">
+              <span><strong>Generated:</strong> {{ formatDate(reportGeneratedAt().toISOString()) }}</span>
+            </div>
           </div>
 
+          <!-- 4 KPI Summary Cards -->
+          <div class="report-summary-cards report-summary-cards--four">
+            <div class="report-stat-card">
+              <span class="stat-number">{{ reportStats().total }}</span>
+              <span class="stat-desc">Total Matching Submissions</span>
+            </div>
+            <div class="report-stat-card report-stat-card--approved">
+              <span class="stat-number">{{ reportStats().approved }}</span>
+              <span class="stat-desc">Approved ({{ reportStats().approvalRate }}%)</span>
+            </div>
+            <div class="report-stat-card report-stat-card--pending">
+              <span class="stat-number">{{ reportStats().pending }}</span>
+              <span class="stat-desc">Pending Review ({{ reportStats().pendingRate }}%)</span>
+            </div>
+            <div class="report-stat-card report-stat-card--rejected">
+              <span class="stat-number">{{ reportStats().rejected }}</span>
+              <span class="stat-desc">Rejected ({{ reportStats().rejectedRate }}%)</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Pipeline Progress Bar -->
           <div class="report-preview-box">
-            <h4>Publication Pipeline Status</h4>
-            <div class="pipeline-bar-wrapper">
-              <div class="pipeline-bar">
-                <div class="bar-segment bar-approved" style="width: 70%" title="Approved">70% Approved</div>
-                <div class="bar-segment bar-pending" style="width: 20%" title="Pending Review">20% Under Review</div>
-                <div class="bar-segment bar-rejected" style="width: 10%" title="Rejected">10%</div>
+            <h4>Publication Pipeline Distribution</h4>
+            @if (reportStats().total > 0) {
+              <div class="pipeline-bar-wrapper">
+                <div class="pipeline-bar">
+                  @if (reportStats().approved > 0) {
+                    <div
+                      class="bar-segment bar-approved"
+                      [style.width.%]="reportStats().approvalRate"
+                      title="Approved: {{ reportStats().approved }} ({{ reportStats().approvalRate }}%)"
+                    >
+                      {{ reportStats().approvalRate }}% Approved
+                    </div>
+                  }
+                  @if (reportStats().pending > 0) {
+                    <div
+                      class="bar-segment bar-pending"
+                      [style.width.%]="reportStats().pendingRate"
+                      title="Pending Review: {{ reportStats().pending }} ({{ reportStats().pendingRate }}%)"
+                    >
+                      {{ reportStats().pendingRate }}% Pending
+                    </div>
+                  }
+                  @if (reportStats().rejected > 0) {
+                    <div
+                      class="bar-segment bar-rejected"
+                      [style.width.%]="reportStats().rejectedRate"
+                      title="Rejected: {{ reportStats().rejected }} ({{ reportStats().rejectedRate }}%)"
+                    >
+                      {{ reportStats().rejectedRate }}% Rejected
+                    </div>
+                  }
+                </div>
               </div>
+            } @else {
+              <p class="report-empty-note">No publications match the selected filters.</p>
+            }
+          </div>
+
+          <!-- Two-Column Breakdown: By Publication Type & By Assigned Reviewer -->
+          <div class="report-grid-two">
+            <!-- Breakdown by Publication Type -->
+            <div class="report-section-card">
+              <h4>Breakdown by Publication Type &amp; Track</h4>
+              <div class="accounts-table-wrapper">
+                <table class="accounts-table">
+                  <thead>
+                    <tr>
+                      <th>Publication Type</th>
+                      <th>Total</th>
+                      <th>Approved</th>
+                      <th>Pending</th>
+                      <th>Rejected</th>
+                      <th>Share</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of reportStats().byType; track item.type) {
+                      <tr>
+                        <td><strong>{{ item.label }}</strong></td>
+                        <td>{{ item.total }}</td>
+                        <td class="text-approved">{{ item.approved }}</td>
+                        <td class="text-pending">{{ item.pending }}</td>
+                        <td class="text-rejected">{{ item.rejected }}</td>
+                        <td><code>{{ item.percentage }}%</code></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Breakdown by Assigned Reviewer / Supervisor -->
+            <div class="report-section-card">
+              <h4>Reviewer / Supervisor Workload</h4>
+              <div class="accounts-table-wrapper">
+                <table class="accounts-table">
+                  <thead>
+                    <tr>
+                      <th>Assigned Lecturer</th>
+                      <th>Total</th>
+                      <th>Approved</th>
+                      <th>Pending</th>
+                      <th>Rejected</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (rev of reportStats().byReviewer; track rev.name) {
+                      <tr>
+                        <td>
+                          <strong>{{ rev.name }}</strong>
+                          @if (rev.email !== '—') {
+                            <div class="table-subtext">{{ rev.email }}</div>
+                          }
+                        </td>
+                        <td>{{ rev.total }}</td>
+                        <td class="text-approved">{{ rev.approved }}</td>
+                        <td class="text-pending">{{ rev.pending }}</td>
+                        <td class="text-rejected">{{ rev.rejected }}</td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="5">No reviewer records found for current filter.</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detailed Publications Registry Table -->
+          <div class="report-section-card">
+            <h4>Detailed Publication Registry ({{ filteredReportPublications().length }} Records)</h4>
+            <div class="accounts-table-wrapper">
+              <table class="accounts-table">
+                <thead>
+                  <tr>
+                    <th>Reference</th>
+                    <th>Title &amp; Authors</th>
+                    <th>Type</th>
+                    <th>Submitted By</th>
+                    <th>Assigned Reviewer</th>
+                    <th>Submitted Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (pub of filteredReportPublications(); track pub.publication_id) {
+                    <tr>
+                      <td><code>{{ pub.publication_reference || pub.publication_id }}</code></td>
+                      <td>
+                        <strong>{{ pub.title }}</strong>
+                        <div class="table-subtext">Authors: {{ formatAuthors(pub.authors) }}</div>
+                      </td>
+                      <td>
+                        {{ pub.publication_type || 'N/A' }}
+                        @if (pub.academic_level || pub.submitter_academic_level) {
+                          <div class="table-subtext">Track: {{ pub.academic_level || pub.submitter_academic_level }}</div>
+                        }
+                      </td>
+                      <td>
+                        {{ (pub.submitter_firstname || '') + ' ' + (pub.submitter_surname || '') }}
+                        @if (pub.submitter_email) {
+                          <div class="table-subtext">{{ pub.submitter_email }}</div>
+                        }
+                      </td>
+                      <td>
+                        {{ (pub.lecturer_firstname || '') + ' ' + (pub.lecturer_surname || '') || pub.lecturer_id || '—' }}
+                      </td>
+                      <td>{{ formatDate(pub.submitted_at || pub.created_at) }}</td>
+                      <td>
+                        <span
+                          class="status-chip"
+                          [class.status-chip--approved]="(pub.status || '').toLowerCase() === 'approved'"
+                          [class.status-chip--pending]="(pub.status || '').toLowerCase() === 'pending'"
+                          [class.status-chip--rejected]="(pub.status || '').toLowerCase() === 'rejected'"
+                        >
+                          {{ pub.status || 'Pending' }}
+                        </span>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="7">No publications match the selected filters.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
-          <button type="button" class="btn btn-primary" (click)="closeModal()">Export Summary PDF</button>
+          <button type="button" class="btn btn-primary" (click)="closeModal()">Close Report</button>
         </div>
       </div>
     </div>

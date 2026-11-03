@@ -3,10 +3,19 @@
 // Verifies the Bearer token in the Authorization header against
 // Keycloak's JWKS endpoint. On success, attaches `req.user` with
 // the decoded token payload (sub, email, realm_roles, user_id, etc.).
+//
+// The Keycloak identity is then mapped onto the application's "Users"
+// table (by `user_id`, `email`, or username/full name) so that
+// `req.user.id` is always a valid DB user_id and `req.user.roles`
+// includes the user's role from the PostgreSQL "Users" table.
 
 const jwt = require("jsonwebtoken");
 const jwksClient = require("jwks-rsa");
 const keycloakConfig = require("../config/keycloak");
+const db = require("../config/database");
+
+// Development-only bypass. Must be explicitly enabled with AUTH_DEV_BYPASS=true.
+const DEV_BYPASS = String(process.env.AUTH_DEV_BYPASS || "").toLowerCase() === "true";
 
 // JWKS client that fetches and caches the Keycloak public signing keys
 const client = jwksClient({
@@ -32,80 +41,184 @@ function getKey(header, callback) {
 }
 
 /**
- * Express middleware that:
- * 1. Extracts the Bearer token from the Authorization header
- * 2. Verifies the token signature against Keycloak's public key
- * 3. Validates issuer and audience claims
- * 4. Populates req.user with decoded token data
+ * Convert a PostgreSQL "Users".role string (e.g. "Lecturer", "System Admin", "Student")
+ * into normalized application roles and merge with existing JWT roles.
  */
-function authenticate(req, res, next) {
-  const authHeader = req.headers.authorization;
+function mergeDbRoles(jwtRoles = [], dbRole = "") {
+  const roleSet = new Set(
+    (jwtRoles || [])
+      .filter((r) => r && !r.startsWith("default-roles-") && r !== "offline_access" && r !== "uma_authorization")
+      .map((r) => r.toLowerCase())
+  );
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    // In development mode, allow requests without token so the frontend UI functions before Keycloak login is connected
-    if (process.env.NODE_ENV !== "production") {
-      req.user = {
-        sub: "dev-reviewer",
-        id: "LEC000001",
-        email: "kabelo.molefe@example.com",
-        name: "Kabelo Molefe",
-        firstName: "Kabelo",
-        lastName: "Molefe",
-        username: "reviewer1",
-        roles: ["reviewer", "admin", "student"],
-      };
-      return next();
-    }
-
-    return res.status(401).json({
-      error: "Missing or invalid Authorization header",
-    });
+  const raw = String(dbRole || "").trim().toLowerCase();
+  if (raw.includes("admin")) {
+    roleSet.add("admin");
+  } else if (raw === "lecturer" || raw === "reviewer") {
+    roleSet.add("lecturer");
+    roleSet.add("reviewer");
+  } else if (raw === "student") {
+    roleSet.add("student");
+  } else if (raw) {
+    roleSet.add(raw);
   }
 
-  const token = authHeader.split(" ")[1];
+  return Array.from(roleSet);
+}
 
+/**
+ * Look up the application user that corresponds to a Keycloak identity.
+ * Matches on `user_id` claim, `email`, concatenated `firstname + surname` matching `username`,
+ * or `firstName` + `lastName`.
+ */
+async function resolveDbUser(decoded) {
+  const userId = decoded.user_id || null;
+  const email = decoded.email || null;
+  const username = (decoded.preferred_username || "").trim();
+  const givenName = (decoded.given_name || "").trim();
+  const familyName = (decoded.family_name || "").trim();
+
+  const result = await db.query(
+    `SELECT user_id, firstname, surname, email, role, academic_level, supervisor_id
+     FROM "Users"
+     WHERE ($1::text IS NOT NULL AND LOWER(user_id) = LOWER($1))
+        OR ($2::text IS NOT NULL AND LOWER(email) = LOWER($2))
+        OR ($3::text <> '' AND LOWER(user_id) = LOWER($3))
+        OR ($3::text <> '' AND LOWER(REPLACE(firstname || surname, ' ', '')) = LOWER(REPLACE($3, ' ', '')))
+        OR ($4::text <> '' AND $5::text <> '' AND LOWER(firstname) = LOWER($4) AND LOWER(surname) = LOWER($5))
+     ORDER BY
+       (LOWER(user_id) = LOWER(COALESCE($1, ''))) DESC,
+       (LOWER(email) = LOWER(COALESCE($2, ''))) DESC
+     LIMIT 1`,
+    [userId, email, username, givenName, familyName]
+  );
+
+  return result.rows[0] || null;
+}
+
+function devUser() {
+  return {
+    sub: "dev-reviewer",
+    id: "LEC000001",
+    email: "kabelo.molefe@example.com",
+    name: "Kabelo Molefe",
+    firstName: "Kabelo",
+    lastName: "Molefe",
+    username: "kabelomolefe",
+    roles: ["lecturer", "reviewer", "admin", "student"],
+    registered: true,
+  };
+}
+
+/**
+ * Verify a bearer token and populate req.user.
+ * Resolves to an HTTP error object ({ status, error }) on failure, or null on success.
+ */
+function verifyToken(req, token) {
   const verifyOptions = {
     issuer: keycloakConfig.issuer,
     algorithms: ["RS256"],
   };
 
-  jwt.verify(token, getKey, verifyOptions, (err, decoded) => {
-    if (err) {
-      console.error("JWT verification failed:", err.message);
-
-      if (err.name === "TokenExpiredError") {
-        return res.status(401).json({ error: "Token has expired" });
+  return new Promise((resolve) => {
+    jwt.verify(token, getKey, verifyOptions, async (err, decoded) => {
+      if (err) {
+        console.error("JWT verification failed:", err.message);
+        if (err.name === "TokenExpiredError") {
+          return resolve({ status: 401, error: "Token has expired" });
+        }
+        return resolve({ status: 401, error: "Invalid or expired token" });
       }
 
-      return res.status(401).json({ error: "Invalid or expired token" });
-    }
-
-    // Build a clean user object from the decoded JWT claims
-    req.user = {
-      // Keycloak subject (unique user identifier in Keycloak)
-      sub: decoded.sub,
-
-      // Custom user_id attribute mapped from Keycloak (e.g. "U0000001")
-      id: decoded.user_id || decoded.sub,
-
-      // User profile
-      email: decoded.email,
-      name: decoded.name || `${decoded.given_name || ""} ${decoded.family_name || ""}`.trim(),
-      firstName: decoded.given_name,
-      lastName: decoded.family_name,
-      username: decoded.preferred_username,
-
-      // Realm roles — extracted from the custom `realm_roles` claim
-      // (set up via the protocol mapper in realm-export.json)
-      // Falls back to the standard Keycloak claim path
-      roles:
+      const rawJwtRoles =
         decoded.realm_roles ||
         (decoded.realm_access && decoded.realm_access.roles) ||
-        [],
-    };
+        [];
 
-    next();
+      // Build a clean user object from the decoded JWT claims
+      req.user = {
+        sub: decoded.sub,
+        id: decoded.user_id || decoded.sub,
+        email: decoded.email,
+        name: decoded.name || `${decoded.given_name || ""} ${decoded.family_name || ""}`.trim(),
+        firstName: decoded.given_name,
+        lastName: decoded.family_name,
+        username: decoded.preferred_username,
+        roles: mergeDbRoles(rawJwtRoles, ""),
+        registered: false,
+      };
+
+      // Map the Keycloak identity onto the application's Users table and merge DB role
+      try {
+        const dbUser = await resolveDbUser(decoded);
+        if (dbUser) {
+          req.user.id = dbUser.user_id;
+          req.user.email = dbUser.email || req.user.email;
+          req.user.firstName = dbUser.firstname || req.user.firstName;
+          req.user.lastName = dbUser.surname || req.user.lastName;
+          req.user.name = `${dbUser.firstname || ""} ${dbUser.surname || ""}`.trim() || req.user.name;
+          req.user.roles = mergeDbRoles(rawJwtRoles, dbUser.role);
+          req.user.academic_level = dbUser.academic_level || null;
+          req.user.supervisor_id = dbUser.supervisor_id || null;
+          req.user.dbUser = dbUser;
+          req.user.registered = true;
+        }
+      } catch (lookupErr) {
+        console.error("User lookup failed:", lookupErr.message);
+      }
+
+      resolve(null);
+    });
   });
 }
 
+/**
+ * Express middleware that:
+ * 1. Extracts the Bearer token from the Authorization header
+ * 2. Verifies the token signature against Keycloak's public key
+ * 3. Validates issuer and audience claims
+ * 4. Populates req.user with decoded token + PostgreSQL Users data
+ */
+async function authenticate(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (DEV_BYPASS) {
+      req.user = devUser();
+      return next();
+    }
+
+    return res.status(401).json({
+      error: "Missing or invalid Authorization header",
+      message: "Please sign in to continue.",
+    });
+  }
+
+  const failure = await verifyToken(req, authHeader.split(" ")[1]);
+  if (failure) {
+    return res.status(failure.status).json({ error: failure.error, message: failure.error });
+  }
+  next();
+}
+
+/**
+ * Like `authenticate`, but lets anonymous (guest) requests through with
+ * `req.user` left undefined. A token that IS supplied must still be valid.
+ */
+async function optionalAuthenticate(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (DEV_BYPASS) {
+      req.user = devUser();
+    }
+    return next();
+  }
+
+  return authenticate(req, res, next);
+}
+
 module.exports = authenticate;
+module.exports.authenticate = authenticate;
+module.exports.optionalAuthenticate = optionalAuthenticate;
+module.exports.mergeDbRoles = mergeDbRoles;

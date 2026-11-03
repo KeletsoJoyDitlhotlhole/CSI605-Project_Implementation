@@ -1502,4 +1502,154 @@ $text-light: #707070;
     opacity: 1;
     transform: translateY(0) scale(1);
   }
-}
+}
+
+
+/* =====================================================
+   DETAILED REPORT MODAL EXTENSIONS
+   ===================================================== */
+.action-grid--four {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .action-grid--four {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modal-dialog--xl {
+  max-width: 1120px;
+}
+
+.report-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid $border;
+}
+
+.report-meta-stamp {
+  font-size: 12px;
+  color: $text-light;
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.report-summary-cards--four {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 768px) {
+  .report-summary-cards--four {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.report-stat-card--approved .stat-number {
+  color: #15803d;
+}
+
+.report-stat-card--pending .stat-number {
+  color: #b45309;
+}
+
+.report-stat-card--rejected .stat-number {
+  color: #b91c1c;
+}
+
+.report-preview-box {
+  margin-bottom: 22px;
+}
+
+.report-empty-note {
+  margin: 0;
+  font-size: 13px;
+  color: $text-light;
+}
+
+.report-grid-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+@media (max-width: 900px) {
+  .report-grid-two {
+    grid-template-columns: 1fr;
+  }
+}
+
+.report-section-card {
+  background: #ffffff;
+  border: 1px solid $border;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 18px;
+
+  h4 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: $text-dark;
+  }
+
+  .accounts-table-wrapper {
+    margin-bottom: 0;
+  }
+}
+
+.table-subtext {
+  font-size: 11px;
+  color: $text-light;
+  margin-top: 2px;
+}
+
+.text-approved {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.text-pending {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.text-rejected {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.status-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.status-chip--approved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-chip--pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.status-chip--rejected {
+  background: #fee2e2;
+  color: #b91c1c;
+}

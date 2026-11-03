@@ -1,8 +1,8 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { PublicationService } from '../../services/publication.service';
 import { ReviewPublication as ReviewPub } from '../../models/publication.model';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-// import { DatePipe } from '@angular/common';
 import { catchError, EMPTY, map, switchMap, tap } from 'rxjs';
 
 @Component({
@@ -16,6 +16,7 @@ export class ReviewPublication implements OnInit {
   private publicationService = inject(PublicationService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private platformId = inject(PLATFORM_ID);
 
   readonly pageSize = 10;
 
@@ -29,6 +30,8 @@ export class ReviewPublication implements OnInit {
   rangeEnd = computed(() => Math.min(this.page() * this.pageSize, this.total()));
 
   ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+
     this.route.queryParamMap.pipe(
       map(params => this.parsePage(params.get("page"))),
       tap(() => {}),
@@ -49,9 +52,9 @@ export class ReviewPublication implements OnInit {
           relativeTo: this.route,
           queryParams: { page: res.totalPages },
           replaceUrl: true
-        })
+        });
       }
-    })
+    });
   }
 
   splitKeywords(keywords: string): string[] {
@@ -67,7 +70,9 @@ export class ReviewPublication implements OnInit {
       queryParams: { page }
     });
 
-    window.scrollTo({ top: 0 });
+    if (isPlatformBrowser(this.platformId)) {
+      window.scrollTo({ top: 0 });
+    }
   }
 
   private parsePage(value: string | null): number {

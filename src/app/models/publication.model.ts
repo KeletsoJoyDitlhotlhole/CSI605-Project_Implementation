@@ -33,9 +33,9 @@ export interface APIResponse {
 }
 
 export interface SubmitResponse {
-    msg: string,
-    publication_id: string,
-    publication_reference: string
+    msg: string;
+    publication_id: string;
+    publication_reference: string;
 }
 
 export interface ReviewPublication {
@@ -72,7 +72,7 @@ export interface ReviewResponse {
     publications: ReviewPublication[];
 }
 
-export type PubStatus = "approved" | "rejected";
+export type PubStatus = "Approved" | "Rejected" | "approved" | "rejected";
 export interface PubStatusResponse {
     publication_id: string;
     status: string;
@@ -84,7 +84,7 @@ export interface ReviewComment {
     title: string;
     details: string;
     createdAt: string;
-    reviewerId?: number;
+    reviewerId?: string;
 }
 export interface CommentBody {
     title: string;
