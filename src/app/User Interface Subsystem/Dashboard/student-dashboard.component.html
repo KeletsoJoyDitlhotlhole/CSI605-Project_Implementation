@@ -1,0 +1,410 @@
+<div class="dashboard student-theme">
+
+  <!-- Floating Toast Notifications -->
+  <app-toast-container></app-toast-container>
+
+  <!-- Top Navigation Header -->
+  <header class="mobile-header">
+
+    <div class="mobile-brand">
+      <img
+        src="assets/images/ub%20logo.png"
+        alt="University of Botswana"
+        class="ub-logo"
+      >
+      <div class="brand-text">
+        <span>University of Botswana</span>
+        <small>Publication Management System • Student Portal</small>
+      </div>
+    </div>
+
+    <!-- Right Header Controls: Role Switcher & Notification Bell -->
+    <div class="header-right-controls">
+
+      <!-- View Switcher Tabs -->
+      <div class="view-switcher" role="tablist" aria-label="Dashboard role views">
+        <button
+          type="button"
+          class="switch-tab active"
+          aria-selected="true"
+        >
+          🎓 Student View
+        </button>
+        <button
+          type="button"
+          class="switch-tab"
+          (click)="navigateToLecturerDashboard()"
+          title="Switch to Lecturer / Reviewer Dashboard"
+        >
+          👨‍🏫 Lecturer View
+        </button>
+      </div>
+
+      <!-- User Role Pill -->
+      <div class="student-pill">
+        <span class="pill-dot"></span>
+        <span class="pill-label">{{ student.name }}</span>
+      </div>
+
+      <!-- STUDENT NOTIFICATION BELL: Notified when Lecturer Accepts / Rejects -->
+      <app-notification-bell
+        [role]="'student'"
+        [label]="'Review Decisions & Notifications'"
+      ></app-notification-bell>
+
+    </div>
+
+  </header>
+
+  <!-- Main Dashboard Content -->
+  <main class="dashboard-content">
+
+    <!-- Page Heading -->
+    <section class="dashboard-heading">
+      <div class="heading-text">
+        <span class="eyebrow">
+          UNIVERSITY OF BOTSWANA • STUDENT RESEARCH PORTAL
+        </span>
+
+        <h1>
+          Student Publication Dashboard
+        </h1>
+
+        <p>
+          Submit your research manuscripts for faculty verification, monitor reviewer progress,
+          and receive immediate notifications whenever a lecturer reviews, accepts, or requests revisions on your publication.
+        </p>
+      </div>
+    </section>
+
+    <!-- Interactive Demonstration Alert / Test Controls -->
+    <section class="demo-test-banner">
+      <div class="demo-banner-content">
+        <div class="demo-badge">🔔 REAL-TIME NOTIFICATION DEMO</div>
+        <h4>Test Student &amp; Reviewer Notification Workflow</h4>
+        <p>
+          Upload a publication below to notify the <strong>Reviewer's Dashboard Bell</strong> of a new pending review,
+          or simulate a lecturer reviewing your paper to test the <strong>Student Dashboard Bell</strong>.
+        </p>
+      </div>
+
+      <div class="demo-actions">
+        <button
+          type="button"
+          class="btn-demo btn-demo-upload"
+          (click)="openUploadModal()"
+          title="Upload a publication to trigger the reviewer's pending review bell"
+        >
+          ↑ Upload Publication (Alerts Reviewer Bell)
+        </button>
+
+        <button
+          type="button"
+          class="btn-demo btn-demo-accept"
+          (click)="simulateReviewResponse('Accepted')"
+          title="Simulate a lecturer accepting your submission"
+        >
+          ✓ Simulate Lecturer Acceptance
+        </button>
+
+        <button
+          type="button"
+          class="btn-demo btn-demo-reject"
+          (click)="simulateReviewResponse('Rejected')"
+          title="Simulate a lecturer rejecting / requesting revisions"
+        >
+          ✕ Simulate Lecturer Rejection
+        </button>
+
+        <button
+          type="button"
+          class="btn-demo btn-demo-switch"
+          (click)="navigateToLecturerDashboard()"
+          title="Go to Lecturer / Reviewer Dashboard to inspect reviewer bell"
+        >
+          Go to Reviewer Dashboard →
+        </button>
+      </div>
+    </section>
+
+    <!-- Quick Stats Overview -->
+    <section class="quick-stats-grid">
+
+      <!-- Review Decisions Notification Stat Card -->
+      <div class="stat-card stat-notifications">
+        <div class="stat-inner">
+          <span class="stat-label">Review Decision Alerts</span>
+          <span class="stat-number">{{ notificationService.studentNotificationCount() }}</span>
+          <span class="stat-hint">Unread on student bell</span>
+        </div>
+        <div class="stat-icon">🔔</div>
+      </div>
+
+      <!-- Accepted Publications Stat Card -->
+      <div class="stat-card stat-accepted">
+        <div class="stat-inner">
+          <span class="stat-label">Accepted Publications</span>
+          <span class="stat-number">{{ acceptedCount() }}</span>
+          <span class="stat-hint">Approved by faculty</span>
+        </div>
+        <div class="stat-icon">✓</div>
+      </div>
+
+      <!-- Pending Evaluations Stat Card -->
+      <div class="stat-card stat-pending">
+        <div class="stat-inner">
+          <span class="stat-label">Pending Reviews</span>
+          <span class="stat-number">{{ pendingCount() }}</span>
+          <span class="stat-hint">In supervisor review queue</span>
+        </div>
+        <div class="stat-icon">⏳</div>
+      </div>
+
+      <!-- Revisions Required Stat Card -->
+      <div class="stat-card stat-rejected">
+        <div class="stat-inner">
+          <span class="stat-label">Revisions Required</span>
+          <span class="stat-number">{{ rejectedCount() }}</span>
+          <span class="stat-hint">Needs student update</span>
+        </div>
+        <div class="stat-icon">📝</div>
+      </div>
+
+    </section>
+
+    <!-- Main Student Workspaces / Action Cards -->
+    <section class="welcome-section">
+      <h2>Student Workspaces</h2>
+      <p>Select an action below or upload a manuscript directly for review.</p>
+    </section>
+
+    <section class="action-grid">
+
+      <!-- Action 01: Submit Publication -->
+      <article
+        class="action-card"
+        tabindex="0"
+        role="button"
+        (click)="openUploadModal()"
+      >
+        <div class="card-header">
+          <div class="icon-container">
+            <span class="icon">↑</span>
+          </div>
+          <span class="card-number">01</span>
+        </div>
+
+        <div class="card-content">
+          <h3>Submit Publication</h3>
+          <p>
+            Upload a new research paper, final year project, or postgraduate thesis for supervisor review and faculty verification.
+          </p>
+        </div>
+
+        <div class="card-footer">
+          <span>Upload manuscript</span>
+          <span class="arrow">→</span>
+        </div>
+      </article>
+
+      <!-- Action 02: Track Submissions & Reviews -->
+      <article
+        class="action-card"
+        tabindex="0"
+        role="button"
+      >
+        <div class="card-header">
+          <div class="icon-container icon-gold">
+            <span class="icon">🔔</span>
+          </div>
+          <span class="card-number">02</span>
+        </div>
+
+        <div class="card-content">
+          <h3>Review Notifications</h3>
+          <p>
+            Check latest status updates, approval notices, and revision remarks delivered to your notification bell.
+          </p>
+        </div>
+
+        <div class="card-footer">
+          <span>{{ notificationService.studentNotificationCount() }} new notifications</span>
+          <span class="arrow">→</span>
+        </div>
+      </article>
+
+      <!-- Action 03: View and Search Repository -->
+      <article
+        class="action-card"
+        tabindex="0"
+        role="button"
+      >
+        <div class="card-header">
+          <div class="icon-container">
+            <span class="icon">⌕</span>
+          </div>
+          <span class="card-number">03</span>
+        </div>
+
+        <div class="card-content">
+          <h3>View &amp; Search Repository</h3>
+          <p>
+            Explore archived University of Botswana publications, research journals, and dissertations.
+          </p>
+        </div>
+
+        <div class="card-footer">
+          <span>Browse repository</span>
+          <span class="arrow">→</span>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- Submissions & Reviews Tracking Table -->
+    <section class="submissions-section">
+      <div class="submissions-header">
+        <div>
+          <h3>My Submitted Publications &amp; Review Status</h3>
+          <p>Real-time status of your research manuscripts and assigned faculty feedback.</p>
+        </div>
+
+        <button
+          type="button"
+          class="btn-upload-primary"
+          (click)="openUploadModal()"
+        >
+          + Submit New Publication
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table class="ub-table">
+          <thead>
+            <tr>
+              <th>Ref / ID</th>
+              <th>Publication Title</th>
+              <th>Academic Track</th>
+              <th>Assigned Reviewer</th>
+              <th>Submitted</th>
+              <th>Status</th>
+              <th>Reviewer Feedback</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (sub of submissions(); track sub.id) {
+              <tr>
+                <td><code>{{ sub.id }}</code></td>
+                <td>
+                  <strong>{{ sub.title }}</strong>
+                </td>
+                <td>{{ sub.academicLevel }}</td>
+                <td>{{ sub.reviewerName }}</td>
+                <td>{{ sub.submittedDate }}</td>
+                <td>
+                  <span
+                    class="status-chip"
+                    [class.status-accepted]="sub.status === 'Accepted'"
+                    [class.status-pending]="sub.status === 'Pending'"
+                    [class.status-rejected]="sub.status === 'Rejected'"
+                  >
+                    @if (sub.status === 'Accepted') {
+                      ✓ Accepted
+                    } @else if (sub.status === 'Pending') {
+                      ⏳ Pending Review
+                    } @else {
+                      ✕ Rejected (Revisions)
+                    }
+                  </span>
+                </td>
+                <td>
+                  <span class="table-feedback-text">{{ sub.feedback || 'Awaiting review' }}</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Upload Publication Modal -->
+  @if (isUploadModalOpen()) {
+    <div class="modal-backdrop" (click)="closeUploadModal()">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+
+        <div class="modal-header">
+          <div>
+            <h3>Submit New Research Publication</h3>
+            <p>Upload your manuscript. The Reviewer Dashboard will be alerted with a pending review on their bell icon.</p>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="closeUploadModal()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          @if (uploadSuccessMessage()) {
+            <div class="alert-success">
+              {{ uploadSuccessMessage() }}
+            </div>
+          }
+
+          <div class="form-group">
+            <label for="pubTitle">Publication Title *</label>
+            <input
+              id="pubTitle"
+              type="text"
+              class="form-control"
+              [(ngModel)]="uploadTitle"
+              placeholder="e.g. Distributed Consensus in Botswana Telecommunication Networks"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="pubLevel">Academic Level</label>
+            <select id="pubLevel" class="form-control" [(ngModel)]="uploadLevel">
+              <option value="Undergraduate">Undergraduate (Final Year Project)</option>
+              <option value="Postgraduate">Postgraduate (Masters Thesis)</option>
+              <option value="PhD">Doctoral Dissertation (PhD)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="pubAbstract">Abstract / Executive Summary</label>
+            <textarea
+              id="pubAbstract"
+              class="form-control"
+              rows="3"
+              [(ngModel)]="uploadAbstract"
+              placeholder="Brief summary of your research methodology, findings, and conclusion..."
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Manuscript Attachment (PDF / DOCX)</label>
+            <div class="file-drop-zone">
+              <span class="drop-icon">📄</span>
+              <span>Drag &amp; drop manuscript file here or <strong>browse files</strong></span>
+              <small>Simulated upload: PDF / DOCX up to 25MB</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="closeUploadModal()">Cancel</button>
+          <button
+            type="button"
+            class="btn-primary"
+            (click)="submitPublication()"
+            [disabled]="!uploadTitle().trim()"
+          >
+            Submit &amp; Notify Reviewer Bell
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
+
+</div>
+

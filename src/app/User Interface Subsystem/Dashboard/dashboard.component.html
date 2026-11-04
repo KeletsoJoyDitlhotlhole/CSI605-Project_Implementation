@@ -1,164 +1,228 @@
-<div class="dashboard">
+<div class="dashboard lecturer-theme">
 
-  <!-- Mobile Header -->
+  <!-- Floating Toast Notifications -->
+  <app-toast-container></app-toast-container>
+
+  <!-- Mobile & Top Navigation Header -->
   <header class="mobile-header">
 
     <div class="mobile-brand">
-
       <img
         src="assets/images/ub%20logo.png"
         alt="University of Botswana"
-        class="ub-logo">
-
+        class="ub-logo"
+      >
       <div class="brand-text">
         <span>University of Botswana</span>
-        <small>Publication Management</small>
+        <small>Publication Management System • Reviewer Portal</small>
       </div>
-
     </div>
 
-    <button
-      class="menu-button"
-      type="button"
-      aria-label="Open navigation menu">
-      ☰
-    </button>
+    <!-- Right Header Controls: Role Switcher & Notification Bell -->
+    <div class="header-right-controls">
+
+      <!-- View Switcher Tabs -->
+      <div class="view-switcher" role="tablist" aria-label="Dashboard role views">
+        <button
+          type="button"
+          class="switch-tab"
+          (click)="navigateToStudentDashboard()"
+          title="Switch to Student Dashboard"
+        >
+          🎓 Student View
+        </button>
+        <button
+          type="button"
+          class="switch-tab active"
+          aria-selected="true"
+        >
+          👨‍🏫 Lecturer View
+        </button>
+      </div>
+
+      <!-- Reviewer Identity Pill -->
+      <div class="reviewer-pill">
+        <span class="pill-dot"></span>
+        <span class="pill-label">{{ reviewer.name }} (Reviewer)</span>
+      </div>
+
+      <!-- REVIEWER NOTIFICATION BELL: Notified when Student Uploads a Publication -->
+      <app-notification-bell
+        [role]="'reviewer'"
+        [label]="'Pending Review Notifications'"
+      ></app-notification-bell>
+
+    </div>
 
   </header>
 
 
-  <!-- Main Dashboard -->
+  <!-- Main Dashboard Content -->
   <main class="dashboard-content">
 
     <!-- Page Heading -->
     <section class="dashboard-heading">
-
       <div class="heading-text">
-
         <span class="eyebrow">
-          UNIVERSITY OF BOTSWANA
+          UNIVERSITY OF BOTSWANA • FACULTY &amp; REVIEWER PORTAL
         </span>
 
         <h1>
-          Publication Management
+          Publication Management Dashboard
         </h1>
 
         <p>
-          Manage, submit, review and search University of Botswana
-          publications from one place.
+          Evaluate student research submissions, inspect manuscripts, provide reviewer feedback,
+          and track University of Botswana publications throughout their submission and review lifecycle.
         </p>
+      </div>
+    </section>
 
+    <!-- Interactive Demonstration Alert / Test Controls -->
+    <section class="demo-test-banner">
+      <div class="demo-banner-content">
+        <div class="demo-badge">🔔 REAL-TIME NOTIFICATION DEMO</div>
+        <h4>Student &amp; Reviewer Notification Workflow</h4>
+        <p>
+          When a student uploads a publication, the <strong>Reviewer's Bell Icon</strong> alerts with a pending review badge.
+          When a lecturer accepts or rejects a publication, the <strong>Student's Bell Icon</strong> is immediately updated.
+        </p>
+      </div>
+
+      <div class="demo-actions">
+        <button
+          type="button"
+          class="btn-demo btn-demo-upload"
+          (click)="simulateIncomingStudentUpload()"
+          title="Simulate a student uploading a new publication to test this Reviewer Bell"
+        >
+          ↑ Simulate Student Upload (Alerts Reviewer Bell)
+        </button>
+
+        <button
+          type="button"
+          class="btn-demo btn-demo-switch"
+          (click)="navigateToStudentDashboard()"
+          title="Switch to Student Dashboard to test review acceptance/rejection notifications"
+        >
+          Switch to Student Dashboard →
+        </button>
+      </div>
+    </section>
+
+    <!-- Contextual Quick Stats -->
+    <section class="quick-stats-grid">
+
+      <!-- Pending Reviews Stat Card -->
+      <div class="stat-card stat-pending-reviews">
+        <div class="stat-inner">
+          <span class="stat-label">Pending Reviews</span>
+          <span class="stat-number">{{ activePendingCount() }}</span>
+          <span class="stat-hint">Notified on reviewer bell</span>
+        </div>
+        <div class="stat-icon">🔔</div>
+      </div>
+
+      <!-- Completed Reviews Stat Card -->
+      <div class="stat-card stat-completed">
+        <div class="stat-inner">
+          <span class="stat-label">Completed Reviews</span>
+          <span class="stat-number">{{ totalCompletedReviews() }}</span>
+          <span class="stat-hint">Evaluated this semester</span>
+        </div>
+        <div class="stat-icon">✓</div>
+      </div>
+
+      <!-- Repository Publications Stat Card -->
+      <div class="stat-card stat-repo">
+        <div class="stat-inner">
+          <span class="stat-label">Repository Publications</span>
+          <span class="stat-number">{{ totalRepositoryPublications() }}</span>
+          <span class="stat-hint">Total published archive</span>
+        </div>
+        <div class="stat-icon">⌕</div>
+      </div>
+
+      <!-- Assigned Department Stat Card -->
+      <div class="stat-card stat-department">
+        <div class="stat-inner">
+          <span class="stat-label">Review Track</span>
+          <span class="stat-number">Faculty</span>
+          <span class="stat-hint">{{ reviewer.department }}</span>
+        </div>
+        <div class="stat-icon">🏛️</div>
       </div>
 
     </section>
 
 
-    <!-- Welcome -->
+    <!-- Welcome Section -->
     <section class="welcome-section">
-
-      <h2>
-        Welcome
-      </h2>
-
-      <p>
-        What would you like to do?
-      </p>
-
+      <h2>Workspaces</h2>
+      <p>Select a workspace or process pending manuscripts below.</p>
     </section>
 
 
-    <!-- Main Actions -->
+    <!-- Main Actions Grid -->
     <section class="action-grid">
 
       <!-- Submit Publication -->
       <article
         class="action-card"
         tabindex="0"
-        role="button">
-
+        role="button"
+      >
         <div class="card-header">
-
           <div class="icon-container">
             <span class="icon">↑</span>
           </div>
-
-          <span class="card-number">
-            01
-          </span>
-
+          <span class="card-number">01</span>
         </div>
 
         <div class="card-content">
-
-          <h3>
-            Submit Publication
-          </h3>
-
+          <h3>Submit Publication</h3>
           <p>
-            Submit a new research publication for processing,
-            verification and review.
+            Submit faculty research papers, journals, or academic publications for institutional processing and verification.
           </p>
-
         </div>
 
         <div class="card-footer">
-
-          <span>
-            Submit publication
-          </span>
-
-          <span class="arrow">
-            →
-          </span>
-
+          <span>Submit publication</span>
+          <span class="arrow">→</span>
         </div>
-
       </article>
 
 
       <!-- Review Publication -->
       <article
-        class="action-card"
+        class="action-card action-card--review-highlight"
         tabindex="0"
-        role="button">
-
+        role="button"
+        (click)="openReviewInspection(pendingReviewList()[0])"
+      >
         <div class="card-header">
-
-          <div class="icon-container">
+          <div class="icon-container icon-maroon">
             <span class="icon">✓</span>
           </div>
-
-          <span class="card-number">
-            02
-          </span>
-
+          <span class="card-number">02</span>
         </div>
 
         <div class="card-content">
-
-          <h3>
-            Review Publication
-          </h3>
-
+          <div class="title-with-pill">
+            <h3>Review Publication</h3>
+            @if (activePendingCount() > 0) {
+              <span class="action-pending-badge">{{ activePendingCount() }} Pending</span>
+            }
+          </div>
           <p>
-            Review submitted publications and manage them through
-            the publication review process.
+            Review submitted student publications, inspect manuscripts, provide reviewer feedback, and approve or reject submissions.
           </p>
-
         </div>
 
         <div class="card-footer">
-
-          <span>
-            Review publications
-          </span>
-
-          <span class="arrow">
-            →
-          </span>
-
+          <span>Review publications</span>
+          <span class="arrow">→</span>
         </div>
-
       </article>
 
 
@@ -166,73 +230,190 @@
       <article
         class="action-card"
         tabindex="0"
-        role="button">
-
+        role="button"
+      >
         <div class="card-header">
-
           <div class="icon-container">
             <span class="icon">⌕</span>
           </div>
-
-          <span class="card-number">
-            03
-          </span>
-
+          <span class="card-number">03</span>
         </div>
 
         <div class="card-content">
-
-          <h3>
-            View &amp; Search Publications
-          </h3>
-
+          <h3>View &amp; Search Publications</h3>
           <p>
-            Browse the publication repository and search for
-            publications by title, author, department or keyword.
+            Browse the university repository and search for publications by title, author, department or keyword.
           </p>
-
         </div>
 
         <div class="card-footer">
-
-          <span>
-            Browse publications
-          </span>
-
-          <span class="arrow">
-            →
-          </span>
-
+          <span>Browse publications</span>
+          <span class="arrow">→</span>
         </div>
-
       </article>
 
     </section>
 
 
-    <!-- Information -->
-    <section class="information-section">
+    <!-- Pending Reviews Queue Section -->
+    <section class="review-queue-section">
+      <div class="queue-header">
+        <div>
+          <div class="queue-title-row">
+            <h3>Pending Review Queue (Student Submissions)</h3>
+            <span class="queue-badge">{{ pendingReviewList().length }} in queue</span>
+          </div>
+          <p>
+            Newly uploaded student publications appear here and alert the <strong>Reviewer Bell Icon</strong>.
+            Click "Inspect &amp; Review" to evaluate and accept or reject.
+          </p>
+        </div>
 
-      <div class="information-icon">
-        i
+        <button
+          type="button"
+          class="btn-simulate-upload"
+          (click)="simulateIncomingStudentUpload()"
+        >
+          + Simulate Student Upload
+        </button>
       </div>
 
-      <div class="information-content">
-
-        <h3>
-          Publication Management System
-        </h3>
-
-        <p>
-          This system provides a central platform for managing
-          University of Botswana publications throughout their
-          submission, review and publication lifecycle.
-        </p>
-
+      <div class="table-container">
+        <table class="ub-table">
+          <thead>
+            <tr>
+              <th>Ref / ID</th>
+              <th>Publication Title</th>
+              <th>Student Submitter</th>
+              <th>Academic Track</th>
+              <th>Uploaded Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of pendingReviewList(); track item.id) {
+              <tr>
+                <td><code>{{ item.id }}</code></td>
+                <td>
+                  <strong>{{ item.title }}</strong>
+                </td>
+                <td>
+                  <strong>{{ item.studentName }}</strong>
+                  <div class="table-subtext">ID: {{ item.studentId }}</div>
+                </td>
+                <td>{{ item.academicTrack }}</td>
+                <td>{{ item.uploadedDate }}</td>
+                <td>
+                  <span
+                    class="status-chip"
+                    [class.status-pending]="item.status === 'Pending'"
+                    [class.status-accepted]="item.status === 'Approved'"
+                    [class.status-rejected]="item.status === 'Rejected'"
+                  >
+                    @if (item.status === 'Pending') {
+                      ⏳ Pending Review
+                    } @else if (item.status === 'Approved') {
+                      ✓ Approved
+                    } @else {
+                      ✕ Rejected
+                    }
+                  </span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="btn-inspect-review"
+                    (click)="openReviewInspection(item)"
+                  >
+                    Inspect &amp; Review →
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
-
     </section>
 
   </main>
+
+
+  <!-- Review Inspection & Decision Modal -->
+  @if (isReviewModalOpen() && selectedReviewItem()) {
+    <div class="modal-backdrop" (click)="closeReviewModal()">
+      <div class="modal-dialog modal-dialog--wide" (click)="$event.stopPropagation()">
+
+        <div class="modal-header">
+          <div>
+            <h3>Review Publication Manuscript</h3>
+            <p>
+              Reference: <code>{{ selectedReviewItem()?.id }}</code> •
+              Submitted by <strong>{{ selectedReviewItem()?.studentName }}</strong>
+            </p>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="closeReviewModal()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          @if (reviewDecisionSuccessMessage()) {
+            <div class="alert-success">
+              {{ reviewDecisionSuccessMessage() }}
+            </div>
+          }
+
+          <div class="paper-meta-summary">
+            <h4>{{ selectedReviewItem()?.title }}</h4>
+            <div class="paper-meta-tags">
+              <span class="tag-badge">Track: {{ selectedReviewItem()?.academicTrack }}</span>
+              <span class="tag-badge">Student ID: {{ selectedReviewItem()?.studentId }}</span>
+              <span class="tag-badge">Uploaded: {{ selectedReviewItem()?.uploadedDate }}</span>
+            </div>
+            <div class="paper-abstract-box">
+              <strong>Abstract / Research Overview:</strong>
+              <p>{{ selectedReviewItem()?.abstract }}</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reviewerFeedback">Reviewer Comments &amp; Remarks (Sent to Student Bell) *</label>
+            <textarea
+              id="reviewerFeedback"
+              class="form-control"
+              rows="4"
+              [(ngModel)]="reviewerFeedbackText"
+              placeholder="Provide constructive feedback, notes on methodology, revisions needed or reason for acceptance..."
+            ></textarea>
+            <small class="form-hint">
+              These remarks will be transmitted directly to the student's notification bell upon logging your decision.
+            </small>
+          </div>
+        </div>
+
+        <div class="modal-footer modal-footer-decision">
+          <button type="button" class="btn-secondary" (click)="closeReviewModal()">Cancel</button>
+
+          <div class="decision-button-group">
+            <button
+              type="button"
+              class="btn-decision btn-decision-reject"
+              (click)="processReviewDecision('rejected')"
+            >
+              ✕ Reject (Notify Student Bell)
+            </button>
+
+            <button
+              type="button"
+              class="btn-decision btn-decision-accept"
+              (click)="processReviewDecision('accepted')"
+            >
+              ✓ Accept &amp; Publish (Notify Student Bell)
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  }
 
 </div>

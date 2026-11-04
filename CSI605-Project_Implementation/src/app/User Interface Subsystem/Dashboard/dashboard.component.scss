@@ -1,0 +1,747 @@
+/* =====================================================
+   UNIVERSITY OF BOTSWANA
+   PUBLICATION MANAGEMENT DASHBOARD
+   ===================================================== */
+
+
+/* =====================================================
+   COLOURS
+   ===================================================== */
+
+$ub-maroon: #800020;
+$ub-maroon-dark: #5c0018;
+$ub-maroon-light: #f7edef;
+
+$black: #111111;
+$white: #ffffff;
+
+$background: #f6f6f6;
+$border: #e2e2e2;
+
+$text-dark: #171717;
+$text-medium: #4a4a4a;
+$text-light: #707070;
+
+
+/* =====================================================
+   GLOBAL
+   ===================================================== */
+
+.dashboard {
+  min-height: 100vh;
+  width: 100%;
+
+  background: $background;
+  color: $text-dark;
+
+  box-sizing: border-box;
+}
+
+
+/* =====================================================
+   HEADER
+   ===================================================== */
+
+.mobile-header {
+  display: flex;
+
+  height: 80px;
+  width: 100%;
+
+  padding: 0 30px;
+
+  align-items: center;
+  justify-content: space-between;
+
+  background: $ub-maroon;
+  color: $white;
+
+  font-family: Arial, sans-serif;
+
+  box-sizing: border-box;
+}
+
+
+/* =====================================================
+   BRAND
+   ===================================================== */
+
+.mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+
+/* =====================================================
+   UB LOGO
+   ===================================================== */
+
+.ub-logo {
+  display: block;
+
+  width: 58px;
+  height: 58px;
+
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+
+/* =====================================================
+   BRAND TEXT
+   ===================================================== */
+
+.brand-text span {
+  display: block;
+
+  font-size: 16px;
+  font-weight: 700;
+}
+
+
+.brand-text small {
+  display: block;
+
+  margin-top: 3px;
+
+  font-size: 11px;
+
+  opacity: 0.85;
+}
+
+
+/* =====================================================
+   MENU BUTTON
+   ===================================================== */
+
+.menu-button {
+  border: 0;
+  background: transparent;
+
+  color: $white;
+
+  font-size: 25px;
+
+  cursor: pointer;
+}
+
+
+/* =====================================================
+   MAIN CONTENT
+   ===================================================== */
+
+.dashboard-content {
+  width: 100%;
+  max-width: 1400px;
+
+  margin: 0 auto;
+
+  padding: 42px 44px 60px;
+
+  box-sizing: border-box;
+}
+
+
+/* =====================================================
+   HEADING
+   ===================================================== */
+
+.dashboard-heading {
+  position: relative;
+
+  margin-bottom: 42px;
+  padding-bottom: 30px;
+
+  border-bottom: 1px solid $border;
+}
+
+
+.dashboard-heading::after {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  bottom: -1px;
+
+  width: 70px;
+  height: 4px;
+
+  background: $ub-maroon;
+}
+
+
+.eyebrow {
+  display: block;
+
+  margin-bottom: 10px;
+
+  color: $ub-maroon;
+
+  font-size: 12px;
+  font-weight: 800;
+
+  letter-spacing: 1.5px;
+}
+
+
+.dashboard-heading h1 {
+  margin: 0;
+
+  color: $text-dark;
+
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1.2;
+
+  font-weight: 700;
+}
+
+
+.dashboard-heading p {
+  max-width: 700px;
+
+  margin: 12px 0 0;
+
+  color: $text-light;
+
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+
+/* =====================================================
+   WELCOME
+   ===================================================== */
+
+.welcome-section {
+  margin-bottom: 22px;
+}
+
+
+.welcome-section h2 {
+  margin: 0 0 5px;
+
+  color: $text-dark;
+
+  font-size: 21px;
+  font-weight: 700;
+}
+
+
+.welcome-section p {
+  margin: 0;
+
+  color: $text-light;
+
+  font-size: 14px;
+}
+
+
+/* =====================================================
+   ACTION GRID
+   ===================================================== */
+
+.action-grid {
+  display: grid;
+
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  gap: 22px;
+
+  width: 100%;
+}
+
+
+/* =====================================================
+   ACTION CARD
+   ===================================================== */
+
+.action-card {
+  position: relative;
+
+  min-height: 290px;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 26px;
+
+  background: $white;
+
+  border: 1px solid $border;
+  border-radius: 10px;
+
+  box-sizing: border-box;
+
+  overflow: hidden;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+
+/* Maroon top line */
+
+.action-card::before {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 4px;
+
+  background: $ub-maroon;
+
+  transform: scaleX(0);
+  transform-origin: left;
+
+  transition: transform 0.2s ease;
+}
+
+
+.action-card:hover {
+  transform: translateY(-4px);
+
+  border-color: rgba(128, 0, 32, 0.35);
+
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+
+.action-card:hover::before {
+  transform: scaleX(1);
+}
+
+
+/* Keyboard accessibility */
+
+.action-card:focus {
+  outline: none;
+}
+
+
+.action-card:focus-visible {
+  outline: 3px solid rgba(128, 0, 32, 0.25);
+
+  outline-offset: 3px;
+}
+
+
+/* =====================================================
+   CARD HEADER
+   ===================================================== */
+
+.card-header {
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  margin-bottom: 30px;
+}
+
+
+/* =====================================================
+   ICON
+   ===================================================== */
+
+.icon-container {
+  width: 54px;
+  height: 54px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+
+  background: $ub-maroon-light;
+  color: $ub-maroon;
+}
+
+
+.icon {
+  font-size: 27px;
+
+  font-weight: 600;
+
+  line-height: 1;
+}
+
+
+/* =====================================================
+   CARD NUMBER
+   ===================================================== */
+
+.card-number {
+  color: #98a2b3;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  letter-spacing: 1px;
+}
+
+
+/* =====================================================
+   CARD CONTENT
+   ===================================================== */
+
+.card-content {
+  flex: 1;
+}
+
+
+.card-content h3 {
+  margin: 0 0 11px;
+
+  color: $text-dark;
+
+  font-size: 19px;
+  line-height: 1.35;
+
+  font-weight: 700;
+}
+
+
+.card-content p {
+  max-width: 380px;
+
+  margin: 0;
+
+  color: $text-light;
+
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+
+/* =====================================================
+   CARD FOOTER
+   ===================================================== */
+
+.card-footer {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  margin-top: 26px;
+  padding-top: 18px;
+
+  border-top: 1px solid #eef0f3;
+
+  color: $ub-maroon;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+
+.arrow {
+  font-size: 20px;
+
+  transition: transform 0.2s ease;
+}
+
+
+.action-card:hover .arrow {
+  transform: translateX(5px);
+}
+
+
+/* =====================================================
+   INFORMATION SECTION
+   ===================================================== */
+
+.information-section {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 15px;
+
+  margin-top: 28px;
+
+  padding: 20px 22px;
+
+  background: #fbf8f9;
+
+  border: 1px solid #eadfe2;
+  border-left: 4px solid $ub-maroon;
+
+  border-radius: 8px;
+
+  box-sizing: border-box;
+}
+
+
+.information-icon {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: $ub-maroon-light;
+  color: $ub-maroon;
+
+  font-size: 15px;
+  font-weight: 800;
+}
+
+
+.information-content h3 {
+  margin: 0 0 5px;
+
+  color: $text-dark;
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+
+.information-content p {
+  max-width: 900px;
+
+  margin: 0;
+
+  color: $text-light;
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+
+/* =====================================================
+   TABLET / SMALL DESKTOP
+   ===================================================== */
+
+@media (max-width: 1100px) {
+
+  .dashboard-content {
+    padding: 35px 30px 50px;
+  }
+
+  .action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .action-card:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+
+/* =====================================================
+   TABLET
+   ===================================================== */
+
+@media (max-width: 768px) {
+
+  .mobile-header {
+    height: 70px;
+
+    padding: 0 20px;
+  }
+
+  .ub-logo {
+    width: 52px;
+    height: 52px;
+  }
+
+  .brand-text span {
+    font-size: 14px;
+  }
+
+  .brand-text small {
+    font-size: 10px;
+  }
+
+  .dashboard-content {
+    padding: 30px 24px 45px;
+  }
+
+  .dashboard-heading {
+    margin-bottom: 34px;
+    padding-bottom: 25px;
+  }
+
+  .dashboard-heading h1 {
+    font-size: 30px;
+  }
+
+  .action-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .action-card {
+    min-height: 250px;
+  }
+
+  .action-card:last-child {
+    grid-column: auto;
+  }
+}
+
+
+/* =====================================================
+   MOBILE
+   ===================================================== */
+
+@media (max-width: 480px) {
+
+  .mobile-header {
+    height: 64px;
+
+    padding: 0 15px;
+  }
+
+  .mobile-brand {
+    gap: 9px;
+  }
+
+  .ub-logo {
+    width: 46px;
+    height: 46px;
+  }
+
+  .brand-text span {
+    font-size: 12px;
+  }
+
+  .brand-text small {
+    font-size: 9px;
+  }
+
+  .dashboard-content {
+    padding: 25px 16px 35px;
+  }
+
+  .dashboard-heading {
+    margin-bottom: 28px;
+    padding-bottom: 22px;
+  }
+
+  .eyebrow {
+    font-size: 10px;
+    letter-spacing: 1.2px;
+  }
+
+  .dashboard-heading h1 {
+    font-size: 25px;
+  }
+
+  .dashboard-heading p {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .welcome-section h2 {
+    font-size: 19px;
+  }
+
+  .welcome-section p {
+    font-size: 13px;
+  }
+
+  .action-card {
+    min-height: 0;
+
+    padding: 20px;
+  }
+
+  .card-header {
+    margin-bottom: 23px;
+  }
+
+  .icon-container {
+    width: 48px;
+    height: 48px;
+  }
+
+  .icon {
+    font-size: 24px;
+  }
+
+  .card-content h3 {
+    font-size: 17px;
+  }
+
+  .card-content p {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .card-footer {
+    margin-top: 22px;
+    padding-top: 15px;
+
+    font-size: 12px;
+  }
+
+  .information-section {
+    padding: 17px;
+    gap: 12px;
+  }
+
+  .information-content h3 {
+    font-size: 13px;
+  }
+
+  .information-content p {
+    font-size: 12px;
+  }
+}
+
+
+/* =====================================================
+   VERY SMALL PHONES
+   ===================================================== */
+
+@media (max-width: 350px) {
+
+  .dashboard-content {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .dashboard-heading h1 {
+    font-size: 23px;
+  }
+
+  .action-card {
+    padding: 17px;
+  }
+}
+
+
+/* =====================================================
+   REDUCED MOTION
+   ===================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .action-card,
+  .action-card::before,
+  .arrow {
+    transition: none;
+  }
+}
