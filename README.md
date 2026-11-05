@@ -57,3 +57,19 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+
+---
+
+## Email Notifications & MailHog
+
+The system automatically sends email notifications using the email addresses stored in the PostgreSQL database (`Users.email`).
+
+All outgoing emails in development are intercepted by **MailHog**:
+- **MailHog SMTP Port**: `1025`
+- **MailHog Web UI**: [http://localhost:8025](http://localhost:8025)
+
+### Notification Triggers:
+1. **Student Submission Confirmation**: When a student submits a manuscript (e.g. Master's Thesis or PhD Dissertation), a confirmation email with the publication reference, publication type, track, status, and assigned reviewer details is sent to the student's email.
+2. **Reviewer Assignment Notice**: The assigned supervisor/lecturer receives an email alerting them that a new student publication has been assigned to their review queue.
+3. **Review Decision Notice**: When the reviewing lecturer records an Approved or Rejected review, the student receives an email with the decision and reviewer feedback.
