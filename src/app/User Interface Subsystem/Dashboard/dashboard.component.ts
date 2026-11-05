@@ -1,10 +1,10 @@
-import { Component, inject, computed, signal, OnInit, PLATFORM_ID } from '@angular/core';
+import { Component, inject, computed, signal, OnInit, PLATFORM_ID, HostListener, effect } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { PublicationService } from '../../services/publication.service';
-import { Publication } from '../../models/publication.model';
+import { Publication, ReviewPublication } from '../../models/publication.model';
 
 export interface DashboardCard {
   id: string;
@@ -56,8 +56,21 @@ export class DashboardComponent implements OnInit {
   // Stats & Live Repository Data for Detailed Admin Report
   readonly totalPublications = signal<number | null>(null);
   readonly pendingReviews = signal<number | null>(null);
+  readonly pendingReviewPublications = signal<ReviewPublication[]>([]);
+  readonly studentReviewedPublications = signal<any[]>([]);
+  readonly isNotificationOpen = signal<boolean>(false);
   readonly allPublications = signal<Publication[]>([]);
   readonly reportGeneratedAt = signal<Date>(new Date());
+
+  readonly isReviewerRole = computed(() =>
+    this.authService.hasAnyRole('lecturer', 'reviewer', 'admin')
+  );
+
+  readonly bellNotificationCount = computed(() =>
+    this.isReviewerRole()
+      ? (this.pendingReviews() ?? 0)
+      : this.studentReviewedPublications().length
+  );
 
   // Report Filters
   readonly reportStatusFilter = signal<string>('all');
@@ -311,9 +324,55 @@ export class DashboardComponent implements OnInit {
     return 'action-grid--five';
   });
 
+  constructor() {
+    effect(() => {
+      const currentUser = this.user();
+      if (isPlatformBrowser(this.platformId) && currentUser) {
+        this.refreshStats();
+      }
+    });
+  }
+
   ngOnInit(): void {
     if (isPlatformBrowser(this.platformId)) {
       this.refreshStats();
+    }
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    if (this.isNotificationOpen()) {
+      this.isNotificationOpen.set(false);
+    }
+  }
+
+  toggleNotifications(event: MouseEvent): void {
+    event.stopPropagation();
+    const nextState = !this.isNotificationOpen();
+    this.isNotificationOpen.set(nextState);
+    if (nextState) {
+      this.refreshStats();
+    }
+  }
+
+  closeNotifications(): void {
+    this.isNotificationOpen.set(false);
+  }
+
+  openPendingPublication(pub: ReviewPublication): void {
+    this.isNotificationOpen.set(false);
+    this.router.navigate(['/review-publication', pub.publication_id], {
+      state: { publication: pub }
+    });
+  }
+
+  openStudentNotification(pub: any): void {
+    this.isNotificationOpen.set(false);
+    const statusLower = (pub?.status || '').trim().toLowerCase();
+    if (statusLower === 'approved') {
+      this.router.navigate(['/search-publications']);
+    } else {
+      this.router.navigate(['/submit-publication']);
     }
   }
 
@@ -331,12 +390,42 @@ export class DashboardComponent implements OnInit {
     });
 
     if (this.authService.hasAnyRole('lecturer', 'reviewer', 'admin')) {
-      this.pubService.fetchReviewList(1, 1).subscribe({
-        next: res => this.pendingReviews.set(res.total || 0),
-        error: () => this.pendingReviews.set(null)
+      this.pubService.fetchReviewList(1, 30).subscribe({
+        next: res => {
+          const list = res.publications || [];
+          const pendingOnly = list.filter(p => {
+            const st = (p.status || '').trim().toLowerCase();
+            return st === 'pending' || st === 'submitted';
+          });
+          this.pendingReviewPublications.set(pendingOnly);
+          this.pendingReviews.set(pendingOnly.length);
+        },
+        error: () => {
+          this.pendingReviewPublications.set([]);
+          this.pendingReviews.set(null);
+        }
+      });
+      this.studentReviewedPublications.set([]);
+    } else if (this.user()) {
+      this.pendingReviewPublications.set([]);
+      this.pendingReviews.set(null);
+      this.pubService.fetchMySubmissions().subscribe({
+        next: res => {
+          const list = res.publications || [];
+          const reviewedOnly = list.filter(p => {
+            const st = (p.status || '').trim().toLowerCase();
+            return st === 'approved' || st === 'rejected';
+          });
+          this.studentReviewedPublications.set(reviewedOnly);
+        },
+        error: () => {
+          this.studentReviewedPublications.set([]);
+        }
       });
     } else {
+      this.pendingReviewPublications.set([]);
       this.pendingReviews.set(null);
+      this.studentReviewedPublications.set([]);
     }
   }
 

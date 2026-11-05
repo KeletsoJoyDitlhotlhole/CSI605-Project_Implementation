@@ -22,6 +22,9 @@ router.get("/", optionalAuthenticate, publicationsController.getAllPublcations);
 // publications that have to be reviewed (lecturers, reviewers, and admins)
 router.get("/review", authenticate, authorize(...REVIEW_ROLES), publicationsController.getReviewList);
 
+// Get current user's own submitted publications (for student review notifications)
+router.get("/my-submissions", authenticate, authorize(...ALL_ROLES), publicationsController.getMySubmissions);
+
 // get the publication file
 router.get("/review/:id/file", authenticate, authorize(...REVIEW_ROLES), publicationsController.getPubFile);
 

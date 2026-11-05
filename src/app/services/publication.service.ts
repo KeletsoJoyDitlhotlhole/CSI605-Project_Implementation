@@ -57,6 +57,11 @@ export class PublicationService {
         return this._httpClient.get<ReviewResponse>(`${this._apiUrl}review`, { params });
     }
 
+    // Get publications submitted by the currently signed-in student/user
+    fetchMySubmissions(): Observable<{ total: number; publications: any[] }> {
+        return this._httpClient.get<{ total: number; publications: any[] }>(`${this._apiUrl}my-submissions`);
+    }
+
     // Change publication status
     updatePubStatus(id: string, status: string): Observable<PubStatusResponse> {
         return this._httpClient.patch<PubStatusResponse>(

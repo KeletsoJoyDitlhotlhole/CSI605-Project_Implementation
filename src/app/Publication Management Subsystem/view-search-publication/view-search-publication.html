@@ -30,7 +30,395 @@
         <h2>View &amp; Search Publications</h2>
         <p>Browse, search, and discover academic research, theses, dissertations, and conference papers across the University of Botswana.</p>
       </div>
+
+      <div class="heading-actions">
+        <button
+          type="button"
+          class="btn-toggle-analytics"
+          (click)="toggleAnalytics()"
+          [class.active]="showAnalytics()"
+          [attr.aria-expanded]="showAnalytics()"
+          title="Toggle repository analytics and publication statistics report"
+        >
+          <span class="btn-icon">📊</span>
+          <span>{{ showAnalytics() ? 'Hide Analytics Report' : 'Show Analytics Report' }}</span>
+        </button>
+      </div>
     </div>
+
+    <!-- =========================
+         ANALYTICS & STATISTICS REPORT SECTION
+         ========================= -->
+    @if (showAnalytics()) {
+      <section class="analytics-report-section" aria-label="Repository publication analytics and statistics report">
+
+        <!-- Report Header Bar -->
+        <div class="report-header-bar">
+          <div class="report-header-titles">
+            <div class="report-title-row">
+              <span class="report-icon">📊</span>
+              <h3>Approved Publications Repository Analytics &amp; Statistics Report</h3>
+              <span class="report-badge">Live Metrics</span>
+            </div>
+            <p>Comprehensive statistical breakdown of published research, format distributions, and faculty academic output.</p>
+          </div>
+
+          <div class="report-header-controls">
+            <!-- Scope Switcher -->
+            <div class="scope-switcher" role="tablist" aria-label="Analytics scope">
+              <button
+                type="button"
+                class="scope-btn"
+                [class.active]="analyticsScope() === 'approved'"
+                (click)="setAnalyticsScope('approved')"
+                title="View statistics for all approved publications in repository"
+              >
+                All Approved ({{ allApprovedPublications().length }})
+              </button>
+              <button
+                type="button"
+                class="scope-btn"
+                [class.active]="analyticsScope() === 'filtered'"
+                (click)="setAnalyticsScope('filtered')"
+                title="View statistics matching current search and filters"
+              >
+                Filtered Results ({{ filteredPublications().length }})
+              </button>
+            </div>
+
+            <!-- Print / Export Action -->
+            <button
+              type="button"
+              class="btn-print-report"
+              (click)="printReport()"
+              title="Print or export analytics report"
+            >
+              🖨️ Print Report
+            </button>
+          </div>
+        </div>
+
+        <!-- Top Metric Summary KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-card--primary">
+            <div class="kpi-content">
+              <span class="kpi-label">Approved Publications</span>
+              <span class="kpi-value">{{ reportStats().total }}</span>
+              <span class="kpi-subtext">Verified University Repository Items</span>
+            </div>
+            <div class="kpi-icon-box">📚</div>
+          </div>
+
+          <div class="kpi-card kpi-card--type">
+            <div class="kpi-content">
+              <span class="kpi-label">Primary Format</span>
+              <span class="kpi-value">{{ reportStats().types[0]?.label || 'Journal Article' }}</span>
+              <span class="kpi-subtext">
+                {{ reportStats().types[0]?.count || 0 }} papers ({{ reportStats().types[0]?.percentage || 0 }}% of repository)
+              </span>
+            </div>
+            <div class="kpi-icon-box">📄</div>
+          </div>
+
+          <div class="kpi-card kpi-card--academic">
+            <div class="kpi-content">
+              <span class="kpi-label">Graduate Theses &amp; Dissertations</span>
+              <span class="kpi-value">
+                {{ (reportStats().academicLevels[1]?.count || 0) + (reportStats().academicLevels[2]?.count || 0) }}
+              </span>
+              <span class="kpi-subtext">Master's Theses &amp; PhD Dissertations</span>
+            </div>
+            <div class="kpi-icon-box">🎓</div>
+          </div>
+
+          <div class="kpi-card kpi-card--collab">
+            <div class="kpi-content">
+              <span class="kpi-label">Co-Authorship &amp; Collaboration</span>
+              <span class="kpi-value">{{ reportStats().collaboration.multiAuthorPercentage }}%</span>
+              <span class="kpi-subtext">
+                {{ reportStats().collaboration.uniqueAuthors }} Contributing Authors
+              </span>
+            </div>
+            <div class="kpi-icon-box">👥</div>
+          </div>
+        </div>
+
+        <!-- Main Charts Grid -->
+        <div class="charts-grid-main">
+
+          <!-- Chart 1: Publication Types Breakdown (Donut Chart + Type List) -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h4>Publication Format Breakdown</h4>
+                <p>Distribution of approved research by publication format. Click any type to filter.</p>
+              </div>
+              <span class="chart-tag">Interactive</span>
+            </div>
+
+            <div class="chart-body chart-body-types">
+              <!-- Left: SVG Donut Chart -->
+              <div class="donut-wrapper">
+                <svg viewBox="0 0 100 100" class="donut-svg" aria-label="Donut chart showing publication types">
+                  <circle cx="50" cy="50" r="38" class="donut-track" />
+                  @for (t of reportStats().types; track t.type) {
+                    @if (t.count > 0) {
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="38"
+                        class="donut-segment"
+                        [attr.stroke]="t.color"
+                        [attr.stroke-dasharray]="t.dashArray"
+                        [attr.stroke-dashoffset]="t.dashOffset"
+                        transform="rotate(-90 50 50)"
+                        (click)="filterByTypeFromGraph(t.type)"
+                      >
+                        <title>{{ t.label }}: {{ t.count }} ({{ t.percentage }}%)</title>
+                      </circle>
+                    }
+                  }
+                  <text x="50" y="45" text-anchor="middle" class="donut-center-num">{{ reportStats().total }}</text>
+                  <text x="50" y="58" text-anchor="middle" class="donut-center-lbl">Publications</text>
+                </svg>
+                <span class="donut-hint">Hover or click slice to filter</span>
+              </div>
+
+              <!-- Right: Publication Types Progress List -->
+              <div class="types-breakdown-list">
+                @for (t of reportStats().types; track t.type) {
+                  <div
+                    class="type-row-item"
+                    tabindex="0"
+                    role="button"
+                    (click)="filterByTypeFromGraph(t.type)"
+                    title="Click to filter repository by {{ t.label }}"
+                  >
+                    <div class="type-row-header">
+                      <div class="type-title-group">
+                        <span class="type-icon-dot" [style.background-color]="t.color"></span>
+                        <span class="type-icon">{{ t.icon }}</span>
+                        <span class="type-name">{{ t.label }}</span>
+                      </div>
+                      <div class="type-numbers">
+                        <span class="type-count-badge">{{ t.count }}</span>
+                        <span class="type-percent">{{ t.percentage }}%</span>
+                      </div>
+                    </div>
+                    <div class="type-progress-track">
+                      <div
+                        class="type-progress-bar"
+                        [style.width.%]="t.percentage"
+                        [style.background-color]="t.color"
+                      ></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart 2: Research Timeline & Publication Trends (SVG Bar Chart) -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h4>Publication Timeline &amp; Research Growth</h4>
+                <p>Volume of approved repository manuscripts across academic years.</p>
+              </div>
+              <span class="chart-tag">Annual Trend</span>
+            </div>
+
+            <div class="chart-body chart-body-timeline">
+              <div class="timeline-chart-wrapper">
+                <svg viewBox="0 0 380 180" class="timeline-svg" aria-label="Bar chart showing publications by year">
+                  <defs>
+                    <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#800020" />
+                      <stop offset="100%" stop-color="#b91c1c" />
+                    </linearGradient>
+                  </defs>
+
+                  <!-- Horizontal Grid Lines -->
+                  <line x1="40" y1="20" x2="360" y2="20" class="grid-line" />
+                  <line x1="40" y1="60" x2="360" y2="60" class="grid-line" />
+                  <line x1="40" y1="100" x2="360" y2="100" class="grid-line" />
+                  <line x1="40" y1="140" x2="360" y2="140" class="grid-line grid-line--base" />
+
+                  <!-- Y-Axis Scale Marks -->
+                  <text x="32" y="24" class="axis-lbl" text-anchor="end">Max</text>
+                  <text x="32" y="84" class="axis-lbl" text-anchor="end">Med</text>
+                  <text x="32" y="144" class="axis-lbl" text-anchor="end">0</text>
+
+                  <!-- Bars -->
+                  @for (item of reportStats().timeline; track item.period; let idx = $index) {
+                    <!-- Bar Column -->
+                    <rect
+                      [attr.x]="65 + (idx * 75)"
+                      [attr.y]="140 - item.barHeight"
+                      width="42"
+                      [attr.height]="item.barHeight"
+                      rx="4"
+                      class="timeline-bar"
+                      fill="url(#barGrad)"
+                    >
+                      <title>{{ item.period }}: {{ item.count }} publications ({{ item.percentage }}%)</title>
+                    </rect>
+
+                    <!-- Count Label on Top of Bar -->
+                    <text
+                      [attr.x]="65 + (idx * 75) + 21"
+                      [attr.y]="140 - item.barHeight - 6"
+                      text-anchor="middle"
+                      class="bar-value-text"
+                    >
+                      {{ item.count }}
+                    </text>
+
+                    <!-- X-Axis Year Label -->
+                    <text
+                      [attr.x]="65 + (idx * 75) + 21"
+                      y="160"
+                      text-anchor="middle"
+                      class="bar-period-text"
+                    >
+                      {{ item.period }}
+                    </text>
+                  }
+                </svg>
+              </div>
+
+              <div class="timeline-legend">
+                <span class="legend-indicator"></span>
+                <span>Annual Approved Manuscripts at University of Botswana</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Secondary Charts Grid -->
+        <div class="charts-grid-secondary">
+
+          <!-- Chart 3: Academic Level & Track Comparison -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h4>Academic Level &amp; Track Breakdown</h4>
+                <p>Distribution of research output across student and faculty academic tiers.</p>
+              </div>
+            </div>
+
+            <div class="chart-body">
+              <div class="academic-levels-grid">
+                @for (lvl of reportStats().academicLevels; track lvl.level) {
+                  <div class="level-column-card">
+                    <div class="level-bar-container">
+                      <div
+                        class="level-bar"
+                        [style.height.px]="lvl.barHeight"
+                        [style.background-color]="lvl.color"
+                      >
+                        <span class="level-bar-percent">{{ lvl.percentage }}%</span>
+                      </div>
+                    </div>
+                    <span class="level-count">{{ lvl.count }} papers</span>
+                    <span class="level-name">{{ lvl.label }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart 4: Prominent Research Focus Disciplines & Keywords -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h4>Top Research Topics &amp; Keyword Clusters</h4>
+                <p>Frequently explored research areas. Click any keyword to search repository.</p>
+              </div>
+            </div>
+
+            <div class="chart-body">
+              <div class="keywords-stats-cloud">
+                @for (kw of reportStats().topKeywords; track kw.keyword) {
+                  <button
+                    type="button"
+                    class="kw-badge-btn"
+                    (click)="filterByKeywordFromGraph(kw.keyword)"
+                    title="Click to search publications for '{{ kw.keyword }}'"
+                  >
+                    <span class="kw-name">{{ kw.keyword }}</span>
+                    <span class="kw-count-tag">{{ kw.count }}</span>
+                  </button>
+                } @empty {
+                  <p class="empty-hint">No keyword metadata available for current dataset.</p>
+                }
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Detailed Publication Type Summary Table -->
+        <div class="report-table-card">
+          <div class="table-card-header">
+            <h4>Detailed Format Summary Registry</h4>
+            <span class="table-card-subtext">{{ reportStats().total }} total records analyzed</span>
+          </div>
+
+          <div class="analytics-table-wrapper">
+            <table class="analytics-table">
+              <thead>
+                <tr>
+                  <th>Format / Type</th>
+                  <th>Approved Count</th>
+                  <th>Share of Repository</th>
+                  <th>Visual Share</th>
+                  <th>Quick Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (t of reportStats().types; track t.type) {
+                  <tr>
+                    <td>
+                      <div class="tbl-type-name">
+                        <span class="type-icon-dot" [style.background-color]="t.color"></span>
+                        <strong>{{ t.label }}</strong>
+                      </div>
+                    </td>
+                    <td><span class="tbl-count-badge">{{ t.count }}</span></td>
+                    <td><strong>{{ t.percentage }}%</strong></td>
+                    <td class="tbl-progress-cell">
+                      <div class="tbl-progress-track">
+                        <div
+                          class="tbl-progress-bar"
+                          [style.width.%]="t.percentage"
+                          [style.background-color]="t.color"
+                        ></div>
+                      </div>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        class="tbl-filter-btn"
+                        (click)="filterByTypeFromGraph(t.type)"
+                        title="Filter repository to {{ t.label }}"
+                      >
+                        Filter View →
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+    }
+
+    <!-- Anchor for smooth scrolling from graphs -->
+    <div id="publications-results-anchor"></div>
 
     <!-- =========================
          SEARCH & FILTER TOOLBAR

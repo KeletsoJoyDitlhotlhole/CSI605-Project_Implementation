@@ -275,35 +275,6 @@
         </small>
       </div>
 
-      <!-- Student ID for development testing -->
-      <div class="form-group">
-        <label for="submittedBy">
-          Student ID <span>*</span>
-        </label>
-
-        <input
-          id="submittedBy"
-          name="submittedBy"
-          type="text"
-          [ngModel]="submittedBy"
-          (ngModelChange)="onSubmittedByChange($event)"
-          placeholder="e.g. STU000001 (Master's) or STU000002 (PhD)"
-          [class.invalid-field]="fieldErrors['submittedBy']"
-          [attr.aria-invalid]="!!fieldErrors['submittedBy']"
-        />
-
-        <small class="help-text">
-          Temporary testing field. Authentication will supply this automatically later.
-        </small>
-
-        <small
-          *ngIf="fieldErrors['submittedBy']"
-          class="field-error"
-        >
-          {{ fieldErrors['submittedBy'] }}
-        </small>
-      </div>
-
       <!-- Publication PDF -->
       <div class="form-group">
         <label for="publicationFile">

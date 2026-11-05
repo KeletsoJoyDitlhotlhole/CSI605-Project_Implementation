@@ -247,6 +247,63 @@ exports.getPublicationById = async (req, res) => {
     }
 };
 
+// Get publications submitted by the currently signed-in student/user (including review status and latest reviewer comment)
+exports.getMySubmissions = async (req, res) => {
+    const userId = req.user?.id || null;
+    const userEmail = req.user?.email || null;
+
+    if (!userId && !userEmail) {
+        return res.status(401).json({ error: "Please sign in to view your submissions." });
+    }
+
+    const sql = `
+        SELECT
+            pub.publication_id,
+            pub.publication_reference,
+            pub.title,
+            pub.abstract,
+            pub.keywords,
+            pub.status,
+            pub.submitted_by,
+            pub.publication_type,
+            pub.academic_level,
+            pub.created_at,
+            pub.updated_at,
+            pub.submitted_at,
+            pub.lecturer_id,
+            l.firstname AS lecturer_firstname,
+            l.surname AS lecturer_surname,
+            l.email AS lecturer_email,
+            rc.title AS latest_comment_title,
+            rc.details AS latest_comment_details,
+            rc.created_at AS latest_comment_at
+        FROM public."Publications" pub
+        LEFT JOIN public."Users" u ON pub.submitted_by = u.user_id
+        LEFT JOIN public."Users" l ON pub.lecturer_id = l.user_id
+        LEFT JOIN LATERAL (
+            SELECT title, details, created_at
+            FROM public."Review Comments" c
+            WHERE c.publication_id = pub.publication_id
+            ORDER BY c.created_at DESC
+            LIMIT 1
+        ) rc ON TRUE
+        WHERE ($1::text IS NOT NULL AND LOWER(pub.submitted_by) = LOWER($1))
+           OR ($2::text IS NOT NULL AND LOWER(u.email) = LOWER($2))
+        ORDER BY COALESCE(pub.updated_at, pub.created_at) DESC
+    `;
+
+    try {
+        const result = await db.query(sql, [userId, userEmail]);
+        return res.status(200).json({
+            total: result.rows.length,
+            publications: result.rows
+        });
+    } catch (err) {
+        console.error({ error: err.message });
+        return res.status(500).json({ error: err.message });
+    }
+};
+
 // Get all publications that have to be reviewed with pagination
 // Excludes publications submitted by the currently logged-in lecturer so they cannot review their own work
 exports.getReviewList = async (req, res) => {

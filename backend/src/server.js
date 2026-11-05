@@ -48,6 +48,31 @@ async function ensureAcademicLevelSchema() {
 }
 ensureAcademicLevelSchema();
 
+// Ensure the "Review Comments" table exists (created on first backend start if missing)
+async function ensureReviewCommentsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS public."Review Comments" (
+        id            SERIAL PRIMARY KEY,
+        publication_id VARCHAR(50)   NOT NULL
+                        REFERENCES public."Publications"(publication_id) ON DELETE CASCADE,
+        reviewer_id   VARCHAR(50),
+        title         VARCHAR(150)  NOT NULL,
+        details       TEXT          NOT NULL,
+        created_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_review_comments_publication_id
+        ON public."Review Comments"(publication_id);
+    `);
+    console.log('Schema check OK: "Review Comments" table is ready.');
+  } catch (err) {
+    console.error('Schema check warning ("Review Comments"):', err.message);
+  }
+}
+ensureReviewCommentsTable();
+
 // Health check endpoint (public — no auth required)
 app.get("/api/health", async (req, res) => {
   try {

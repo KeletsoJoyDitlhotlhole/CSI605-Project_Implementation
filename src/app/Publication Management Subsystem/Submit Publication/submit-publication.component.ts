@@ -329,11 +329,6 @@ export class SubmitPublicationComponent {
         'PDF File is required.';
     }
 
-    if (!this.submittedBy.trim()) {
-      this.fieldErrors['submittedBy'] =
-        'Student ID is required.';
-    }
-
     return Object.keys(this.fieldErrors).length === 0;
   }
 
@@ -345,8 +340,7 @@ export class SubmitPublicationComponent {
       abstract: 'Abstract',
       keywords: 'Domain Keywords',
       authors: 'Author',
-      publicationFile: 'PDF File',
-      submittedBy: 'Student ID'
+      publicationFile: 'PDF File'
     };
 
     const missingFields = Object.keys(this.fieldErrors).map(key => {

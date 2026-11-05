@@ -9,6 +9,7 @@ export interface Publication {
     academic_level?: string;
     created_at: string;
     submitted_at: string;
+    updated_at?: string;
     authors: string[];
     file_id?: string;
     original_filename?: string;
@@ -17,6 +18,7 @@ export interface Publication {
     submitter_surname?: string;
     submitter_email?: string;
     submitter_academic_level?: string;
+    submitted_by?: string;
     // Assigned reviewer (lecturer)
     lecturer_id?: string;
     lecturer_firstname?: string;
@@ -49,6 +51,7 @@ export interface ReviewPublication {
   academic_level?: string;
   created_at: string;
   submitted_at: string;
+  updated_at?: string;
   authors: string[];
   file_id: string;
   original_filename: string;
@@ -57,6 +60,7 @@ export interface ReviewPublication {
   submitter_surname: string;
   submitter_email: string;
   submitter_academic_level?: string;
+  submitted_by?: string;
   // Assigned reviewer (lecturer)
   lecturer_id?: string;
   lecturer_firstname?: string;
