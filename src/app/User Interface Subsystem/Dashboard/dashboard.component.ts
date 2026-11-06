@@ -62,8 +62,9 @@ export class DashboardComponent implements OnInit {
   readonly allPublications = signal<Publication[]>([]);
   readonly reportGeneratedAt = signal<Date>(new Date());
 
+  // Admins no longer review publications, so they are not treated as reviewers
   readonly isReviewerRole = computed(() =>
-    this.authService.hasAnyRole('lecturer', 'reviewer', 'admin')
+    this.authService.hasAnyRole('lecturer', 'reviewer')
   );
 
   readonly bellNotificationCount = computed(() =>
@@ -112,6 +113,16 @@ export class DashboardComponent implements OnInit {
       link: '/search-publications',
       actionText: 'Browse publications',
       allowedRoles: ['student', 'lecturer', 'reviewer', 'admin', '*']
+    },
+    {
+      id: 'profiles',
+      title: 'Manage Profiles',
+      description: 'Create, update and deactivate user accounts, and assign roles and supervisors for students, lecturers and reviewers.',
+      icon: '☺',
+      badge: 'Administration',
+      link: '/manage-profiles',
+      actionText: 'Manage profiles',
+      allowedRoles: ['admin']
     },
     {
       id: 'reports',
@@ -258,8 +269,11 @@ export class DashboardComponent implements OnInit {
     const roles = (user.roles || []).map(r => r.toLowerCase());
     const isAdmin = roles.includes('admin');
 
+    // Admins see only their two administrative cards
+    const ADMIN_CARD_IDS = ['profiles', 'reports'];
+
     const filtered = this.allCards.filter(card => {
-      if (isAdmin) return true;
+      if (isAdmin) return ADMIN_CARD_IDS.includes(card.id);
       if (card.allowedRoles.includes('*')) return true;
       return card.allowedRoles.some(r => roles.includes(r.toLowerCase()));
     });
@@ -308,7 +322,7 @@ export class DashboardComponent implements OnInit {
     }
     const roles = user.roles.map(r => r.toLowerCase());
     if (roles.includes('admin')) {
-      return 'Full Administrative Privilege — manage publications, oversee review processes, and generate detailed institutional research reports.';
+      return 'Administrative Workspace — manage user profiles and generate detailed institutional research reports.';
     }
     if (roles.includes('lecturer') || roles.includes('reviewer')) {
       return 'Lecturer Workspace — submit academic research publications, evaluate student submissions, provide peer reviews, and browse repository research.';
@@ -408,6 +422,7 @@ export class DashboardComponent implements OnInit {
   }
 
   refreshStats(): void {
+    // Every signed-in role loads the repository list (admins need it for reports)
     this.pubService.fetchAllPublications().subscribe({
       next: res => {
         const pubs = res.publications || [];
@@ -420,7 +435,8 @@ export class DashboardComponent implements OnInit {
       }
     });
 
-    if (this.authService.hasAnyRole('lecturer', 'reviewer', 'admin')) {
+    if (this.authService.hasAnyRole('lecturer', 'reviewer')) {
+      // Lecturers / reviewers: pending review queue
       this.pubService.fetchReviewList(1, 30).subscribe({
         next: res => {
           const list = res.publications || [];
@@ -437,7 +453,8 @@ export class DashboardComponent implements OnInit {
         }
       });
       this.studentReviewedPublications.set([]);
-    } else if (this.user()) {
+    } else if (this.user() && !this.authService.hasRole('admin')) {
+      // Students: their own reviewed submissions
       this.pendingReviewPublications.set([]);
       this.pendingReviews.set(null);
       this.pubService.fetchMySubmissions().subscribe({
@@ -454,6 +471,7 @@ export class DashboardComponent implements OnInit {
         }
       });
     } else {
+      // Guests and admins: no review queue and no personal submissions
       this.pendingReviewPublications.set([]);
       this.pendingReviews.set(null);
       this.studentReviewedPublications.set([]);

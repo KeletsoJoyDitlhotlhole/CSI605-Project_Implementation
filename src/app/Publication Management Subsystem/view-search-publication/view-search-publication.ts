@@ -66,9 +66,16 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
   searchTerm = signal('');
   selectedType = signal('all');
   selectedSort = signal('newest');
+  selectedYear = signal('all');
+  selectedSubject = signal('all');
+  dateFrom = signal('');
+  dateTo = signal('');
   page = signal(1);
   pageSize = signal(10);
   viewMode = signal<'grid' | 'list'>('grid');
+
+  // Today's date (YYYY-MM-DD) used as the max for the date pickers
+  readonly todayIso = new Date().toISOString().slice(0, 10);
 
   // Analytics & Report state
   showAnalytics = signal<boolean>(true);
@@ -422,12 +429,52 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
   // Copy feedback tooltip
   copiedReference = signal(false);
 
+  // ---------- Helpers used for sorting / filtering ----------
+  private pubTime(p: Publication): number {
+    return new Date(p.submitted_at || p.created_at || 0).getTime();
+  }
+
+  private firstAuthor(p: Publication): string {
+    if (Array.isArray(p.authors)) return (p.authors[0] || '').trim();
+    return String(p.authors || '').split(/[,;]+/)[0].trim();
+  }
+
+  private firstKeyword(p: Publication): string {
+    return this.splitKeywords(p.keywords)[0] || '';
+  }
+
+  // Years present in the data, newest first
+  readonly availableYears = computed<string[]>(() => {
+    const years = new Set<string>();
+    for (const p of this.rawPublications()) {
+      const d = new Date(p.submitted_at || p.created_at || '');
+      if (!isNaN(d.getTime())) years.add(String(d.getFullYear()));
+    }
+    return [...years].sort((a, b) => b.localeCompare(a));
+  });
+
+  // Subject areas = distinct keywords in the data, A-Z
+  readonly availableSubjects = computed<string[]>(() => {
+    const map = new Map<string, string>();
+    for (const p of this.rawPublications()) {
+      for (const kw of this.splitKeywords(p.keywords)) {
+        const key = kw.toLowerCase();
+        if (!map.has(key)) map.set(key, kw);
+      }
+    }
+    return [...map.values()].sort((a, b) => a.localeCompare(b));
+  });
+
   // Filtered & sorted publications (instant reactive client + server filtering)
   filteredPublications = computed<Publication[]>(() => {
     let list = [...this.rawPublications()];
     const query = this.searchTerm().trim().toLowerCase();
     const typeFilter = this.selectedType().trim().toLowerCase();
     const sortOrder = this.selectedSort();
+    const yearFilter = this.selectedYear();
+    const subjectFilter = this.selectedSubject().trim().toLowerCase();
+    const fromStr = this.dateFrom();
+    const toStr = this.dateTo();
 
     // 0. Guests and Students only see Approved publications
     const isStaff = this.authService.hasAnyRole('lecturer', 'reviewer', 'admin');
@@ -460,26 +507,62 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
       list = list.filter(pub => (pub.publication_type || '').toLowerCase() === typeFilter);
     }
 
+    // 2b. Year Filter
+    if (yearFilter !== 'all') {
+      list = list.filter(pub => {
+        const d = new Date(pub.submitted_at || pub.created_at || '');
+        return !isNaN(d.getTime()) && String(d.getFullYear()) === yearFilter;
+      });
+    }
+
+    // 2c. Subject Area Filter (exact keyword match)
+    if (subjectFilter && subjectFilter !== 'all') {
+      list = list.filter(pub =>
+        this.splitKeywords(pub.keywords).some(k => k.toLowerCase() === subjectFilter)
+      );
+    }
+
+    // 2d. Date Range Filter (inclusive of the whole "to" day)
+    if (fromStr) {
+      const from = new Date(`${fromStr}T00:00:00`).getTime();
+      list = list.filter(pub => this.pubTime(pub) >= from);
+    }
+    if (toStr) {
+      const to = new Date(`${toStr}T23:59:59.999`).getTime();
+      list = list.filter(pub => this.pubTime(pub) <= to);
+    }
+
     // 3. Sorting
     list.sort((a, b) => {
-      if (sortOrder === 'oldest') {
-        const timeA = new Date(a.submitted_at || a.created_at || 0).getTime();
-        const timeB = new Date(b.submitted_at || b.created_at || 0).getTime();
-        return timeA - timeB;
+      switch (sortOrder) {
+        case 'oldest':
+          return this.pubTime(a) - this.pubTime(b);
+        case 'year_desc':
+        case 'year_asc': {
+          const ya = new Date(this.pubTime(a)).getFullYear();
+          const yb = new Date(this.pubTime(b)).getFullYear();
+          const diff = sortOrder === 'year_desc' ? yb - ya : ya - yb;
+          return diff || (a.title || '').localeCompare(b.title || '');
+        }
+        case 'title_asc':
+          return (a.title || '').localeCompare(b.title || '');
+        case 'title_desc':
+          return (b.title || '').localeCompare(a.title || '');
+        case 'author_asc':
+          return this.firstAuthor(a).localeCompare(this.firstAuthor(b));
+        case 'author_desc':
+          return this.firstAuthor(b).localeCompare(this.firstAuthor(a));
+        case 'subject_asc':
+          return this.firstKeyword(a).localeCompare(this.firstKeyword(b));
+        case 'subject_desc':
+          return this.firstKeyword(b).localeCompare(this.firstKeyword(a));
+        case 'reference_asc':
+          return (a.publication_reference || '').localeCompare(b.publication_reference || '');
+        case 'reference_desc':
+          return (b.publication_reference || '').localeCompare(a.publication_reference || '');
+        default: // newest
+          return this.pubTime(b) - this.pubTime(a);
       }
-      if (sortOrder === 'title_asc') {
-        return (a.title || '').localeCompare(b.title || '');
-      }
-      if (sortOrder === 'title_desc') {
-        return (b.title || '').localeCompare(a.title || '');
-      }
-      if (sortOrder === 'reference_asc') {
-        return (a.publication_reference || '').localeCompare(b.publication_reference || '');
-      }
-      // default: newest
-      const timeA = new Date(a.submitted_at || a.created_at || 0).getTime();
-      const timeB = new Date(b.submitted_at || b.created_at || 0).getTime();
-      return timeB - timeA;
     });
 
     return list;
@@ -506,7 +589,11 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
     return (
       this.searchTerm().trim().length > 0 ||
       this.selectedType() !== 'all' ||
-      this.selectedSort() !== 'newest'
+      this.selectedSort() !== 'newest' ||
+      this.selectedYear() !== 'all' ||
+      this.selectedSubject() !== 'all' ||
+      !!this.dateFrom() ||
+      !!this.dateTo()
     );
   });
 
@@ -522,9 +609,16 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
   readonly sortOptions = [
     { label: 'Newest First', value: 'newest' },
     { label: 'Oldest First', value: 'oldest' },
+    { label: 'Year (Newest → Oldest)', value: 'year_desc' },
+    { label: 'Year (Oldest → Newest)', value: 'year_asc' },
     { label: 'Title (A–Z)', value: 'title_asc' },
     { label: 'Title (Z–A)', value: 'title_desc' },
-    { label: 'Reference Number', value: 'reference_asc' }
+    { label: 'Author (A–Z)', value: 'author_asc' },
+    { label: 'Author (Z–A)', value: 'author_desc' },
+    { label: 'Subject Area (A–Z)', value: 'subject_asc' },
+    { label: 'Subject Area (Z–A)', value: 'subject_desc' },
+    { label: 'Reference (A–Z)', value: 'reference_asc' },
+    { label: 'Reference (Z–A)', value: 'reference_desc' }
   ];
 
   ngOnInit(): void {
@@ -542,6 +636,10 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
       const qSearch = params.get('search') || '';
       const qType = params.get('type') || 'all';
       const qSort = params.get('sort') || 'newest';
+      const qYear = params.get('year') || 'all';
+      const qSubject = params.get('subject') || 'all';
+      const qFrom = params.get('from') || '';
+      const qTo = params.get('to') || '';
       const qPage = Number(params.get('page')) || 1;
       const qLimit = Number(params.get('limit')) || 10;
       const qPubId = params.get('id');
@@ -549,6 +647,10 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
       this.searchTerm.set(qSearch);
       this.selectedType.set(qType);
       this.selectedSort.set(qSort);
+      this.selectedYear.set(qYear);
+      this.selectedSubject.set(qSubject);
+      this.dateFrom.set(qFrom);
+      this.dateTo.set(qTo);
       this.page.set(qPage > 0 ? qPage : 1);
       this.pageSize.set(qLimit > 0 ? qLimit : 10);
 
@@ -599,6 +701,37 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
     this.updateQueryParams({ sort: sort === 'newest' ? null : sort, page: 1 });
   }
 
+  onYearChange(year: string): void {
+    this.selectedYear.set(year);
+    this.page.set(1);
+    this.updateQueryParams({ year: year === 'all' ? null : year, page: 1 });
+  }
+
+  onSubjectChange(subject: string): void {
+    this.selectedSubject.set(subject);
+    this.page.set(1);
+    this.updateQueryParams({ subject: subject === 'all' ? null : subject, page: 1 });
+  }
+
+  onDateFromChange(value: string): void {
+    this.dateFrom.set(value || '');
+    this.page.set(1);
+    this.updateQueryParams({ from: value || null, page: 1 });
+  }
+
+  onDateToChange(value: string): void {
+    this.dateTo.set(value || '');
+    this.page.set(1);
+    this.updateQueryParams({ to: value || null, page: 1 });
+  }
+
+  clearDates(): void {
+    this.dateFrom.set('');
+    this.dateTo.set('');
+    this.page.set(1);
+    this.updateQueryParams({ from: null, to: null, page: 1 });
+  }
+
   onPageSizeChange(size: number): void {
     this.pageSize.set(size);
     this.page.set(1);
@@ -618,11 +751,19 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
     this.searchTerm.set('');
     this.selectedType.set('all');
     this.selectedSort.set('newest');
+    this.selectedYear.set('all');
+    this.selectedSubject.set('all');
+    this.dateFrom.set('');
+    this.dateTo.set('');
     this.page.set(1);
     this.updateQueryParams({
       search: null,
       type: null,
       sort: null,
+      year: null,
+      subject: null,
+      from: null,
+      to: null,
       page: 1,
       id: null
     });
