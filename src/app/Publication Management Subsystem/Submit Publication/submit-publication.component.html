@@ -16,23 +16,14 @@
        ========================= -->
   <header class="page-header">
     <div class="header-left">
-      <img
-        src="/assets/images/ub%20logo.png"
-        alt="University of Botswana"
-        class="ub-logo"
-      />
+      <img src="/assets/images/ub%20logo.png" alt="University of Botswana" class="ub-logo" />
       <div class="header-title">
         <h1>University of Botswana</h1>
         <p>Publication Management System</p>
       </div>
     </div>
 
-    <button
-      class="back-button"
-      type="button"
-      (click)="cancel()"
-      [disabled]="isSubmitting"
-    >
+    <button class="back-button" type="button" (click)="cancel()" [disabled]="isSubmitting">
       Back to Dashboard
     </button>
   </header>
@@ -48,31 +39,19 @@
     </div>
 
     <!-- Success banner -->
-    <div
-      *ngIf="successMessage"
-      class="success-message"
-      role="status"
-    >
+    <div *ngIf="successMessage" class="success-message" role="status">
       {{ successMessage }}
     </div>
 
     <!-- Error banner -->
-    <div
-      *ngIf="errorMessage"
-      class="error-message"
-      role="alert"
-    >
+    <div *ngIf="errorMessage" class="error-message" role="alert">
       {{ errorMessage }}
     </div>
 
     <!-- =========================
          PUBLICATION FORM
          ========================= -->
-    <form
-      class="publication-form"
-      (ngSubmit)="submitPublication()"
-      novalidate
-    >
+    <form class="publication-form" (ngSubmit)="submitPublication()" novalidate>
 
       <div class="section-heading">
         <h3>Publication Details</h3>
@@ -85,20 +64,11 @@
           Publication Title <span>*</span>
         </label>
 
-        <input
-          id="title"
-          name="title"
-          type="text"
-          [(ngModel)]="title"
-          placeholder="Enter the full title of your manuscript"
-          [class.invalid-field]="fieldErrors['title']"
-          [attr.aria-invalid]="!!fieldErrors['title']"
-        />
+        <input id="title" name="title" type="text" [(ngModel)]="title"
+          placeholder="Enter the full title of your manuscript" [class.invalid-field]="fieldErrors['title']"
+          [attr.aria-invalid]="!!fieldErrors['title']" />
 
-        <small
-          *ngIf="fieldErrors['title']"
-          class="field-error"
-        >
+        <small *ngIf="fieldErrors['title']" class="field-error">
           {{ fieldErrors['title'] }}
         </small>
       </div>
@@ -114,20 +84,15 @@
         </p>
 
         <p class="field-hint" *ngIf="!dbAcademicLevelLocked">
-          Select your graduate degree level to determine your required submission type (Thesis for Master's, Dissertation for PhD):
+          Select your graduate degree level to determine your required submission type (Thesis for Master's,
+          Dissertation for PhD):
         </p>
 
         <div class="level-selector-pills" role="radiogroup" aria-label="Academic Level">
           <!-- Master's pill -->
-          <button
-            *ngIf="!dbAcademicLevelLocked || studentLevel === 'masters'"
-            type="button"
-            class="level-pill"
-            [class.active]="studentLevel === 'masters'"
-            (click)="onStudentLevelChange('masters')"
-            role="radio"
-            [attr.aria-checked]="studentLevel === 'masters'"
-          >
+          <button *ngIf="!dbAcademicLevelLocked || studentLevel === 'masters'" type="button" class="level-pill"
+            [class.active]="studentLevel === 'masters'" (click)="onStudentLevelChange('masters')" role="radio"
+            [attr.aria-checked]="studentLevel === 'masters'">
             <span class="pill-icon">🎓</span>
             <span class="pill-text">
               <strong>Master's Degree</strong>
@@ -137,15 +102,9 @@
           </button>
 
           <!-- PhD pill -->
-          <button
-            *ngIf="!dbAcademicLevelLocked || studentLevel === 'phd'"
-            type="button"
-            class="level-pill"
-            [class.active]="studentLevel === 'phd'"
-            (click)="onStudentLevelChange('phd')"
-            role="radio"
-            [attr.aria-checked]="studentLevel === 'phd'"
-          >
+          <button *ngIf="!dbAcademicLevelLocked || studentLevel === 'phd'" type="button" class="level-pill"
+            [class.active]="studentLevel === 'phd'" (click)="onStudentLevelChange('phd')" role="radio"
+            [attr.aria-checked]="studentLevel === 'phd'">
             <span class="pill-icon">🏛️</span>
             <span class="pill-text">
               <strong>Doctoral Degree (PhD)</strong>
@@ -160,7 +119,8 @@
           <span class="banner-icon">🎓</span>
           <div class="banner-body">
             <strong>Master's Degree Track:</strong>
-            <span>Master's candidates submit a <strong>Thesis</strong>. Dissertations are reserved for PhD candidates.</span>
+            <span>Master's candidates submit a <strong>Thesis</strong>. Dissertations are reserved for PhD
+              candidates.</span>
           </div>
         </div>
 
@@ -169,7 +129,8 @@
           <span class="banner-icon">🏛️</span>
           <div class="banner-body">
             <strong>PhD / Doctoral Track:</strong>
-            <span>PhD candidates submit a <strong>Dissertation</strong>. Theses are reserved for Master's candidates.</span>
+            <span>PhD candidates submit a <strong>Dissertation</strong>. Theses are reserved for Master's
+              candidates.</span>
           </div>
         </div>
       </div>
@@ -180,19 +141,11 @@
           Publication Type <span>*</span>
         </label>
 
-        <select
-          id="publicationType"
-          name="publicationType"
-          [(ngModel)]="publicationType"
-          (change)="onPublicationTypeChange()"
-          [class.invalid-field]="fieldErrors['publicationType']"
-          [attr.aria-invalid]="!!fieldErrors['publicationType']"
-        >
+        <select id="publicationType" name="publicationType" [(ngModel)]="publicationType"
+          (change)="onPublicationTypeChange()" [class.invalid-field]="fieldErrors['publicationType']"
+          [attr.aria-invalid]="!!fieldErrors['publicationType']">
           <option value="">Select publication type</option>
-          <option
-            *ngFor="let opt of filteredPublicationTypes"
-            [value]="opt.value"
-          >
+          <option *ngFor="let opt of filteredPublicationTypes" [value]="opt.value">
             {{ opt.label }}
           </option>
         </select>
@@ -201,10 +154,7 @@
           Students can only submit a <strong>Thesis</strong> (Master's) or <strong>Dissertation</strong> (PhD).
         </small>
 
-        <small
-          *ngIf="fieldErrors['publicationType']"
-          class="field-error"
-        >
+        <small *ngIf="fieldErrors['publicationType']" class="field-error">
           {{ fieldErrors['publicationType'] }}
         </small>
       </div>
@@ -221,41 +171,26 @@
         </div>
 
         <p class="field-hint">
-          Choose the primary subject area/research domain for your publication. Use the search box to quickly filter areas:
+          Choose the primary subject area/research domain for your publication. Use the search box to quickly filter
+          areas:
         </p>
 
         <!-- Search input to filter the extensive list -->
         <div class="subject-search-wrapper">
           <span class="search-icon">🔍</span>
-          <input
-            type="text"
-            id="subjectAreaSearch"
-            name="subjectAreaSearch"
-            [(ngModel)]="subjectAreaSearch"
+          <input type="text" id="subjectAreaSearch" name="subjectAreaSearch" [(ngModel)]="subjectAreaSearch"
             placeholder="Type to search subject area (e.g. AI, OS, Databases, Software Engineering, Networks...)"
-            class="subject-search-input"
-          />
-          <button
-            *ngIf="subjectAreaSearch"
-            type="button"
-            class="clear-search-btn"
-            (click)="clearSubjectSearch()"
-            title="Clear search filter"
-          >
+            class="subject-search-input" />
+          <button *ngIf="subjectAreaSearch" type="button" class="clear-search-btn" (click)="clearSubjectSearch()"
+            title="Clear search filter">
             ✕
           </button>
         </div>
 
         <!-- The main searchable select dropdown -->
-        <select
-          id="subjectArea"
-          name="subjectArea"
-          [(ngModel)]="selectedSubjectArea"
-          (change)="fieldErrors['subjectArea'] = ''"
-          [class.invalid-field]="fieldErrors['subjectArea']"
-          [attr.aria-invalid]="!!fieldErrors['subjectArea']"
-          class="subject-dropdown"
-        >
+        <select id="subjectArea" name="subjectArea" [(ngModel)]="selectedSubjectArea"
+          (change)="fieldErrors['subjectArea'] = ''" [class.invalid-field]="fieldErrors['subjectArea']"
+          [attr.aria-invalid]="!!fieldErrors['subjectArea']" class="subject-dropdown">
           <option value="">-- Choose Subject Area ({{ filteredSubjectAreas.length }} available) --</option>
           <option *ngFor="let area of filteredSubjectAreas" [value]="area">
             {{ area }}
@@ -266,22 +201,14 @@
         <div class="popular-subjects-bar">
           <span class="popular-label">Popular areas:</span>
           <div class="popular-chips-list">
-            <button
-              type="button"
-              *ngFor="let pop of popularSubjects"
-              class="subject-chip"
-              [class.subject-chip--active]="selectedSubjectArea === pop"
-              (click)="selectSubjectArea(pop)"
-            >
+            <button type="button" *ngFor="let pop of popularSubjects" class="subject-chip"
+              [class.subject-chip--active]="selectedSubjectArea === pop" (click)="selectSubjectArea(pop)">
               {{ pop }}
             </button>
           </div>
         </div>
 
-        <small
-          *ngIf="fieldErrors['subjectArea']"
-          class="field-error"
-        >
+        <small *ngIf="fieldErrors['subjectArea']" class="field-error">
           {{ fieldErrors['subjectArea'] }}
         </small>
       </div>
@@ -294,21 +221,15 @@
           </label>
 
           <!-- Live word count badge with warning state -->
-          <div
-            class="word-counter-badge"
-            [class.word-counter--danger]="abstractWordCount > 1000"
+          <div class="word-counter-badge" [class.word-counter--danger]="abstractWordCount > 1000"
             [class.word-counter--warning]="abstractWordCount >= 850 && abstractWordCount <= 1000"
-            [class.word-counter--ok]="abstractWordCount > 0 && abstractWordCount < 850"
-          >
+            [class.word-counter--ok]="abstractWordCount > 0 && abstractWordCount < 850">
             <span class="counter-number">{{ abstractWordCount }}</span> / 1,000 words max
           </div>
         </div>
 
         <!-- Prominent instruction banner explaining the 1000-word limit -->
-        <div
-          class="abstract-limit-alert"
-          [class.abstract-limit-alert--danger]="abstractWordCount > 1000"
-        >
+        <div class="abstract-limit-alert" [class.abstract-limit-alert--danger]="abstractWordCount > 1000">
           <span class="alert-icon">{{ abstractWordCount > 1000 ? '⚠️' : 'ℹ️' }}</span>
           <div class="alert-content">
             <span *ngIf="abstractWordCount <= 1000">
@@ -316,36 +237,27 @@
               <span *ngIf="abstractWordCount > 0"> ({{ 1000 - abstractWordCount }} words remaining)</span>
             </span>
             <span *ngIf="abstractWordCount > 1000">
-              <strong>Limit Exceeded:</strong> Your abstract is <strong>{{ abstractWordCount }} words</strong>. Please reduce it by <strong>{{ abstractWordCount - 1000 }} words</strong> before submitting.
+              <strong>Limit Exceeded:</strong> Your abstract is <strong>{{ abstractWordCount }} words</strong>. Please
+              reduce it by <strong>{{ abstractWordCount - 1000 }} words</strong> before submitting.
             </span>
           </div>
         </div>
 
-        <textarea
-          id="abstract"
-          name="abstract"
-          rows="8"
-          [(ngModel)]="abstract"
-          placeholder="Paste or write your publication abstract here (maximum 1,000 words)..."
-          [class.invalid-field]="fieldErrors['abstract'] || abstractWordCount > 1000"
-          [attr.aria-invalid]="!!fieldErrors['abstract'] || abstractWordCount > 1000"
-        ></textarea>
+        <textarea id="abstract" name="abstract" rows="8" [(ngModel)]="abstract"
+          placeholder="Paste or write your publication abstract here (maximum 1,500 words)..."
+          [class.invalid-field]="fieldErrors['abstract'] || abstractWordCount > 1500"
+          [attr.aria-invalid]="!!fieldErrors['abstract'] || abstractWordCount > 1500"></textarea>
 
         <!-- Progress bar visual indicator for word limit -->
         <div class="abstract-progress-track">
-          <div
-            class="abstract-progress-fill"
-            [style.width.%]="abstractWordCount > 1000 ? 100 : (abstractWordCount / 10)"
-            [class.fill--danger]="abstractWordCount > 1000"
-            [class.fill--warning]="abstractWordCount >= 850 && abstractWordCount <= 1000"
-          ></div>
+          <div class="abstract-progress-fill"
+            [style.width.%]="abstractWordCount > 1500 ? 100 : (abstractWordCount / 10)"
+            [class.fill--danger]="abstractWordCount > 1500"
+            [class.fill--warning]="abstractWordCount >= 850 && abstractWordCount <= 1500"></div>
         </div>
 
         <!-- Validation message for the abstract -->
-        <small
-          *ngIf="fieldErrors['abstract']"
-          class="field-error"
-        >
+        <small *ngIf="fieldErrors['abstract']" class="field-error">
           {{ fieldErrors['abstract'] }}
         </small>
       </div>
@@ -356,44 +268,22 @@
           Authors <span>*</span>
         </label>
 
-        <div
-          class="author-row"
-          *ngFor="let author of authors; let i = index; trackBy: trackByIndex"
-        >
-          <input
-            type="text"
-            [name]="'author' + i"
-            [(ngModel)]="authors[i]"
-            [placeholder]="'Enter author ' + (i + 1) + ' name'"
-            [class.invalid-field]="!!fieldErrors['authors']"
-            [attr.aria-label]="'Author ' + (i + 1)"
-          />
+        <div class="author-row" *ngFor="let author of authors; let i = index; trackBy: trackByIndex">
+          <input type="text" [name]="'author' + i" [(ngModel)]="authors[i]"
+            [placeholder]="'Enter author ' + (i + 1) + ' name'" [class.invalid-field]="!!fieldErrors['authors']"
+            [attr.aria-label]="'Author ' + (i + 1)" />
 
-          <button
-            *ngIf="authors.length > 1"
-            type="button"
-            class="cancel-button remove-author-btn"
-            (click)="removeAuthor(i)"
-            [disabled]="isSubmitting"
-          >
+          <button *ngIf="authors.length > 1" type="button" class="cancel-button remove-author-btn"
+            (click)="removeAuthor(i)" [disabled]="isSubmitting">
             Remove
           </button>
         </div>
 
-        <small
-          *ngIf="fieldErrors['authors']"
-          class="field-error"
-          role="alert"
-        >
+        <small *ngIf="fieldErrors['authors']" class="field-error" role="alert">
           {{ fieldErrors['authors'] }}
         </small>
 
-        <button
-          type="button"
-          class="add-author-button"
-          (click)="addAuthor()"
-          [disabled]="isSubmitting"
-        >
+        <button type="button" class="add-author-button" (click)="addAuthor()" [disabled]="isSubmitting">
           + Add Author
         </button>
       </div>
@@ -404,22 +294,13 @@
           Domain Keywords <span>*</span>
         </label>
 
-        <input
-          id="keywords"
-          name="keywords"
-          type="text"
-          [(ngModel)]="keywords"
+        <input id="keywords" name="keywords" type="text" [(ngModel)]="keywords"
           placeholder="e.g. Distributed Systems, Neural Networks, Query Optimization"
-          [class.invalid-field]="fieldErrors['keywords']"
-          [attr.aria-invalid]="!!fieldErrors['keywords']"
-        />
+          [class.invalid-field]="fieldErrors['keywords']" [attr.aria-invalid]="!!fieldErrors['keywords']" />
 
         <small class="field-hint">Separate multiple keywords with commas.</small>
 
-        <small
-          *ngIf="fieldErrors['keywords']"
-          class="field-error"
-        >
+        <small *ngIf="fieldErrors['keywords']" class="field-error">
           {{ fieldErrors['keywords'] }}
         </small>
       </div>
@@ -431,15 +312,9 @@
         </label>
 
         <div class="file-upload">
-          <input
-            id="publicationFile"
-            name="publicationFile"
-            type="file"
-            accept=".pdf,application/pdf"
-            (change)="onFileSelected($event)"
-            [class.invalid-field]="fieldErrors['publicationFile']"
-            [attr.aria-invalid]="!!fieldErrors['publicationFile']"
-          />
+          <input id="publicationFile" name="publicationFile" type="file" accept=".pdf,application/pdf"
+            (change)="onFileSelected($event)" [class.invalid-field]="fieldErrors['publicationFile']"
+            [attr.aria-invalid]="!!fieldErrors['publicationFile']" />
 
           <label for="publicationFile" class="file-label">
             <span class="upload-icon">↑</span>
@@ -449,34 +324,22 @@
         </div>
 
         <small *ngIf="selectedFile" class="help-text">
-          Selected file: <strong>{{ selectedFile.name }}</strong> ({{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB)
+          Selected file: <strong>{{ selectedFile.name }}</strong> ({{ (selectedFile.size / 1024 / 1024).toFixed(2) }}
+          MB)
         </small>
 
-        <small
-          *ngIf="fieldErrors['publicationFile']"
-          class="field-error"
-          role="alert"
-        >
+        <small *ngIf="fieldErrors['publicationFile']" class="field-error" role="alert">
           {{ fieldErrors['publicationFile'] }}
         </small>
       </div>
 
       <!-- FORM ACTIONS -->
       <div class="form-actions">
-        <button
-          type="button"
-          class="cancel-button"
-          (click)="cancel()"
-          [disabled]="isSubmitting"
-        >
+        <button type="button" class="cancel-button" (click)="cancel()" [disabled]="isSubmitting">
           Cancel
         </button>
 
-        <button
-          type="submit"
-          class="submit-button"
-          [disabled]="isSubmitting || abstractWordCount > 1000"
-        >
+        <button type="submit" class="submit-button" [disabled]="isSubmitting || abstractWordCount > 1000">
           {{ isSubmitting ? 'Submitting...' : 'Submit Publication' }}
         </button>
       </div>

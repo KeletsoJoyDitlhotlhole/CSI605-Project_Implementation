@@ -62,21 +62,33 @@
                     <div class="notification-title-group">
                       <h4>Pending Reviews</h4>
                       <span class="notification-count-pill">
-                        {{ pendingReviews() ?? 0 }} pending
+                        {{ activePendingReviewPublications().length }} pending
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      class="notification-close-btn"
-                      (click)="closeNotifications()"
-                      aria-label="Close notifications"
-                    >
-                      ✕
-                    </button>
+                    <div class="notification-header-actions">
+                      @if (activePendingReviewPublications().length > 0) {
+                        <button
+                          type="button"
+                          class="notification-dismiss-all-btn"
+                          (click)="dismissAllNotifications($event)"
+                          title="Dismiss all pending notifications"
+                        >
+                          Dismiss All
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="notification-close-btn"
+                        (click)="closeNotifications()"
+                        aria-label="Close notifications"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
 
                   <div class="notification-dropdown-body">
-                    @for (pub of pendingReviewPublications(); track pub.publication_id) {
+                    @for (pub of activePendingReviewPublications(); track pub.publication_id) {
                       <div
                         class="notification-item"
                         tabindex="0"
@@ -91,13 +103,15 @@
                             @if (pub.publication_type) {
                               <span class="notification-type-tag">{{ pub.publication_type }}</span>
                             }
+                            <button
+                              type="button"
+                              class="notification-dismiss-btn"
+                              (click)="dismissNotification($event, pub.publication_id)"
+                              title="Dismiss this notification"
+                            >
+                              ✕ Dismiss
+                            </button>
                           </div>
-<<<<<<< HEAD
-                        }
-                        <span class="notification-item-cta">
-                          View Reviewer Comments &amp; Feedback →
-                        </span>
-=======
                           <h5 class="notification-item-title">{{ pub.title }}</h5>
                           <p class="notification-item-meta">
                             <span>
@@ -109,7 +123,6 @@
                           </p>
                           <span class="notification-item-cta">Review publication →</span>
                         </div>
->>>>>>> origin/main
                       </div>
                     } @empty {
                       <div class="notification-empty">
@@ -134,21 +147,33 @@
                     <div class="notification-title-group">
                       <h4>Publication Review Updates</h4>
                       <span class="notification-count-pill">
-                        {{ studentReviewedPublications().length }} reviewed
+                        {{ activeStudentReviewedPublications().length }} reviewed
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      class="notification-close-btn"
-                      (click)="closeNotifications()"
-                      aria-label="Close notifications"
-                    >
-                      ✕
-                    </button>
+                    <div class="notification-header-actions">
+                      @if (activeStudentReviewedPublications().length > 0) {
+                        <button
+                          type="button"
+                          class="notification-dismiss-all-btn"
+                          (click)="dismissAllNotifications($event)"
+                          title="Dismiss all review notifications"
+                        >
+                          Dismiss All
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="notification-close-btn"
+                        (click)="closeNotifications()"
+                        aria-label="Close notifications"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
 
                   <div class="notification-dropdown-body">
-                    @for (pub of studentReviewedPublications(); track pub.publication_id) {
+                    @for (pub of activeStudentReviewedPublications(); track pub.publication_id) {
                       <div
                         class="notification-item"
                         [class.notification-item--approved]="(pub.status || '').toLowerCase() === 'approved'"
@@ -178,6 +203,14 @@
                             @if (pub.publication_type) {
                               <span class="notification-type-tag">{{ pub.publication_type }}</span>
                             }
+                            <button
+                              type="button"
+                              class="notification-dismiss-btn"
+                              (click)="dismissNotification($event, pub.publication_id)"
+                              title="Dismiss this notification"
+                            >
+                              ✕ Dismiss
+                            </button>
                           </div>
                           <h5 class="notification-item-title">{{ pub.title }}</h5>
                           <p class="notification-item-meta">
@@ -195,14 +228,14 @@
                             </div>
                           }
                           <span class="notification-item-cta">
-                            {{ (pub.status || '').toLowerCase() === 'approved' ? 'View in Repository →' : 'Submit Revised Publication →' }}
+                            View Reviewer Comments &amp; Feedback →
                           </span>
                         </div>
                       </div>
                     } @empty {
                       <div class="notification-empty">
                         <span class="notification-empty-icon">🔔</span>
-                        <p>No review decisions yet. You will be notified here once your publication is approved or rejected.</p>
+                        <p>No new review notifications. You will be notified here once your publication is approved or rejected.</p>
                       </div>
                     }
                   </div>
@@ -792,6 +825,14 @@
         </div>
 
         <div class="modal-footer feedback-modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline"
+            (click)="dismissCurrentModalNotification()"
+            title="Clear and dismiss this notification from your bell"
+          >
+            ✕ Dismiss Notification
+          </button>
           <button type="button" class="btn btn-secondary" (click)="closeFeedbackModal()">Close</button>
           @if ((selectedReviewFeedbackPub()?.status || '').toLowerCase() === 'approved') {
             <button type="button" class="btn btn-primary" (click)="goToRepositoryFromFeedback()">

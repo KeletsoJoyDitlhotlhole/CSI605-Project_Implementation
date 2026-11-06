@@ -58,6 +58,7 @@ export class DashboardComponent implements OnInit {
   readonly pendingReviews = signal<number | null>(null);
   readonly pendingReviewPublications = signal<ReviewPublication[]>([]);
   readonly studentReviewedPublications = signal<any[]>([]);
+  readonly dismissedNotificationIds = signal<Set<string>>(new Set<string>());
   readonly isNotificationOpen = signal<boolean>(false);
   readonly allPublications = signal<Publication[]>([]);
   readonly reportGeneratedAt = signal<Date>(new Date());
@@ -67,10 +68,20 @@ export class DashboardComponent implements OnInit {
     this.authService.hasAnyRole('lecturer', 'reviewer')
   );
 
+  readonly activeStudentReviewedPublications = computed(() => {
+    const dismissed = this.dismissedNotificationIds();
+    return this.studentReviewedPublications().filter(p => !dismissed.has(p.publication_id));
+  });
+
+  readonly activePendingReviewPublications = computed(() => {
+    const dismissed = this.dismissedNotificationIds();
+    return this.pendingReviewPublications().filter(p => !dismissed.has(p.publication_id));
+  });
+
   readonly bellNotificationCount = computed(() =>
     this.isReviewerRole()
-      ? (this.pendingReviews() ?? 0)
-      : this.studentReviewedPublications().length
+      ? this.activePendingReviewPublications().length
+      : this.activeStudentReviewedPublications().length
   );
 
   // Report Filters
@@ -352,8 +363,65 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     if (isPlatformBrowser(this.platformId)) {
+      this.loadDismissedNotifications();
       this.refreshStats();
     }
+  }
+
+  loadDismissedNotifications(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      const raw = localStorage.getItem('dismissed_notification_ids');
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+          this.dismissedNotificationIds.set(new Set(arr));
+        }
+      }
+    } catch {}
+  }
+
+  dismissNotification(event: Event, pubId: string): void {
+    event.stopPropagation();
+    const updated = new Set(this.dismissedNotificationIds());
+    updated.add(pubId);
+    this.dismissedNotificationIds.set(updated);
+    if (isPlatformBrowser(this.platformId)) {
+      try {
+        localStorage.setItem('dismissed_notification_ids', JSON.stringify(Array.from(updated)));
+      } catch {}
+    }
+  }
+
+  dismissAllNotifications(event?: Event): void {
+    if (event) event.stopPropagation();
+    const updated = new Set(this.dismissedNotificationIds());
+    if (this.isReviewerRole()) {
+      this.pendingReviewPublications().forEach(p => updated.add(p.publication_id));
+    } else {
+      this.studentReviewedPublications().forEach(p => updated.add(p.publication_id));
+    }
+    this.dismissedNotificationIds.set(updated);
+    if (isPlatformBrowser(this.platformId)) {
+      try {
+        localStorage.setItem('dismissed_notification_ids', JSON.stringify(Array.from(updated)));
+      } catch {}
+    }
+  }
+
+  dismissCurrentModalNotification(): void {
+    const pub = this.selectedReviewFeedbackPub();
+    if (pub?.publication_id) {
+      const updated = new Set(this.dismissedNotificationIds());
+      updated.add(pub.publication_id);
+      this.dismissedNotificationIds.set(updated);
+      if (isPlatformBrowser(this.platformId)) {
+        try {
+          localStorage.setItem('dismissed_notification_ids', JSON.stringify(Array.from(updated)));
+        } catch {}
+      }
+    }
+    this.closeFeedbackModal();
   }
 
   @HostListener('document:click')
