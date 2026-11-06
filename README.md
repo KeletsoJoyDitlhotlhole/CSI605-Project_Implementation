@@ -3,17 +3,23 @@
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.27.
 
 ## Roles and Responsibilities
-	Keletso Joy Ditlhotlhole – Group Leader / Frontend Development
+
+### Keletso Joy Ditlhotlhole – Group Leader / Frontend Development
 Served as the group leader, coordinating team activities and ensuring an organised development process, including maintaining order within the shared repository. She contributed to UI design and frontend implementation and was specifically responsible for preparing the documentation and repository structure summary for the project documentation.
-	Kgosi Zilwa – Authentication and Access Control
+
+### Kgosi Zilwa – Authentication and Access Control
 Primarily responsible for implementing authentication and role-based access control, ensuring that users had the appropriate permissions to access system pages and core functionality, particularly administrator features and restricted pages.
-	Phazha Chakalisa – Backend Development
+
+### Phazha Chakalisa – Backend Development
 Primarily contributed to the development and implementation of backend functionality supporting the system’s core features.
-	Archibald Mareme – Backend Development
+
+### Archibald Mareme – Backend Development
 Primarily contributed to backend development and integration, ensuring that server-side functionality supported the required system operations.
-	Kagiso Mpopang – Backend Development
+
+### Kagiso Mpopang – Backend Development
 Primarily contributed to the implementation and integration of backend functionality required by the system.
-	Entire Team – Documentation, Backend, Integration and Maintenance
+
+### Entire Team – Documentation, Backend, Integration and Maintenance
 The entire team collaboratively contributed to project documentation, backend development, system integration and maintenance. Team members participated in testing, troubleshooting, resolving implementation issues, refining functionality, and ensuring that the frontend, backend, authentication, database and other system components worked together correctly.
 
 
