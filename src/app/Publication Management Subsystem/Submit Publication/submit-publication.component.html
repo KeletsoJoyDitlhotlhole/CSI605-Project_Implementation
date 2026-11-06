@@ -1,18 +1,75 @@
+<!--
+  =====================================================================
+  SUBMIT PUBLICATION PAGE (Angular template)
+  =====================================================================
+  Purpose:
+    Lets a user (student or lecturer) submit a manuscript (PDF) together
+    with its metadata (title, type, abstract, authors, keywords) to the
+    Publication Management System.
+
+  Template-driven form:
+    - Uses [(ngModel)] two-way binding, so FormsModule must be imported
+      in the component's module (or standalone imports).
+    - `novalidate` on the <form> switches off the browser's built-in
+      validation. All validation is done in the component class, which
+      fills the `fieldErrors` object (keyed by field name).
+    - Submission is handled by submitPublication() via (ngSubmit).
+
+  Component members this template depends on:
+    Strings / flags:
+      successMessage, errorMessage  -> banner messages shown above the form
+      isSubmitting                  -> true while the request is in flight
+      isLecturer                    -> hides the academic level section
+      dbAcademicLevelLocked         -> true when the level came from the DB
+      studentNameFromDb             -> student's name loaded from the DB
+      studentLevel                  -> 'masters' | 'phd'
+    Form fields:
+      title, publicationType, abstract, authors (string[]), keywords
+      (comma separated string), selectedFile (File)
+    Validation:
+      fieldErrors                   -> e.g. { title: '...', authors: '...' }
+    Data:
+      filteredPublicationTypes      -> [{ value, label }] shown in the dropdown
+    Methods:
+      cancel(), submitPublication(), onStudentLevelChange(level),
+      onPublicationTypeChange(), addAuthor(), removeAuthor(index),
+      onFileSelected(event), trackByIndex
+-->
+
+<!-- Root wrapper for the whole page; all page-level styling hangs off this class -->
 <div class="submit-page">
+
+  <!--
+    ===================================================================
+    PAGE HEADER
+    Shows the university logo, system name and a "Back to Dashboard"
+    button. Stays visible above the form content.
+    ===================================================================
+  -->
   <header class="page-header">
+
+    <!-- Left side of the header: logo + titles -->
     <div class="header-left">
+      <!-- University logo. The path has a URL-encoded space (%20) because the file name is "ub logo.png" -->
       <img
         src="/assets/images/ub%20logo.png"
         alt="University of Botswana"
         class="ub-logo"
       />
 
+      <!-- Institution name and the name of the system -->
       <div class="header-title">
         <h1>University of Botswana</h1>
         <p>Publication Management System</p>
       </div>
     </div>
 
+    <!--
+      Navigation button back to the dashboard.
+      - type="button" prevents it from submitting the form
+      - (click) calls cancel() in the component, which handles the navigation
+      - [disabled] blocks leaving the page while a submission is in progress
+    -->
     <button
       class="back-button"
       type="button"
@@ -23,12 +80,25 @@
     </button>
   </header>
 
+  <!--
+    ===================================================================
+    MAIN CONTENT
+    Contains the page heading, feedback messages and the form itself.
+    ===================================================================
+  -->
   <main class="page-content">
+
+    <!-- Page heading and short description for the user -->
     <div class="page-heading">
       <h2>Submit Publication</h2>
       <p>Submit your manuscript for processing and review.</p>
     </div>
 
+    <!--
+      Success banner.
+      - Rendered only when successMessage has a value (set by the component after a successful submit)
+      - role="status" makes screen readers announce it politely
+    -->
     <div
       *ngIf="successMessage"
       class="success-message"
@@ -37,6 +107,11 @@
       {{ successMessage }}
     </div>
 
+    <!--
+      Error banner (general errors such as a server or network failure).
+      Field-specific errors are shown under each field instead.
+      - role="alert" makes screen readers announce it immediately
+    -->
     <div
       *ngIf="errorMessage"
       class="error-message"
@@ -45,16 +120,34 @@
       {{ errorMessage }}
     </div>
 
+    <!--
+      ===================================================================
+      PUBLICATION FORM
+      - (ngSubmit) runs submitPublication() when the submit button is pressed
+      - novalidate disables native browser validation; the component validates
+      ===================================================================
+    -->
     <form
       class="publication-form"
       (ngSubmit)="submitPublication()"
       novalidate
     >
+
+      <!-- Section heading for the form -->
       <div class="section-heading">
         <h3>Publication Details</h3>
         <p>Enter the required information about your publication.</p>
       </div>
 
+      <!--
+        ---------------------------------------------------------------
+        FIELD 1: PUBLICATION TITLE
+        - [(ngModel)] two-way binds the input to the `title` property
+        - The `invalid-field` class is added when fieldErrors['title'] exists
+        - aria-invalid tells assistive technology the field has an error
+          (the !! converts the error string into a true/false value)
+        ---------------------------------------------------------------
+      -->
       <!-- Publication title -->
       <div class="form-group">
         <label for="title">
@@ -71,6 +164,7 @@
           [attr.aria-invalid]="!!fieldErrors['title']"
         />
 
+        <!-- Validation message, only shown when the title has an error -->
         <small
           *ngIf="fieldErrors['title']"
           class="field-error"
@@ -79,19 +173,50 @@
         </small>
       </div>
 
+      <!--
+        ---------------------------------------------------------------
+        FIELD 2: ACADEMIC LEVEL / DEGREE PROGRAM
+        - Hidden entirely for lecturers (*ngIf="!isLecturer") because only
+          students submit theses or dissertations.
+        - If the level is stored in the database (dbAcademicLevelLocked),
+          only the user's own level is shown, so they cannot change it.
+        - Otherwise the student picks Master's or PhD themselves.
+        - The selected level filters which publication types appear in the
+          "Publication Type" dropdown below (Master's -> Thesis,
+          PhD -> Dissertation).
+        ---------------------------------------------------------------
+      -->
       <!-- Academic Level / Degree Program (Synced from Users.academic_level in DB; hidden for Lecturers) -->
       <div class="form-group academic-level-group" *ngIf="!isLecturer">
         <label>
           Academic Program / Level <span>*</span>
         </label>
+
+        <!-- Hint shown when the level was loaded from the database (read-only for the user) -->
         <p class="field-hint" *ngIf="dbAcademicLevelLocked">
           Academic level loaded from your student profile in the database{{ studentNameFromDb ? ' (' + studentNameFromDb + ')' : '' }}:
         </p>
+
+        <!-- Hint shown when the user must choose their level manually -->
         <p class="field-hint" *ngIf="!dbAcademicLevelLocked">
           Select your current graduate degree to filter the required submission type:
         </p>
 
+        <!--
+          Pill-style radio group. Each pill is a button with role="radio"
+          so assistive technology treats the pair as a radio group.
+        -->
         <div class="level-selector-pills" role="radiogroup" aria-label="Academic Level">
+
+          <!--
+            Master's pill.
+            - Shown when the level is not locked, OR when it is locked and equals 'masters'
+              (so a locked PhD student never sees the Master's option, and vice versa)
+            - [class.active] highlights the pill when selected
+            - (click) calls onStudentLevelChange('masters') to update studentLevel
+              and refresh the filtered publication types
+            - [attr.aria-checked] exposes the selected state to screen readers
+          -->
           <button
             *ngIf="!dbAcademicLevelLocked || studentLevel === 'masters'"
             type="button"
@@ -106,9 +231,14 @@
               <strong>Master's Degree</strong>
               <small>MSc / MPhil / MA (Submits Thesis)</small>
             </span>
+            <!-- Tick mark displayed only on the selected pill -->
             <span class="pill-check" *ngIf="studentLevel === 'masters'">✓</span>
           </button>
 
+          <!--
+            PhD pill.
+            Same logic as the Master's pill, but for 'phd'.
+          -->
           <button
             *ngIf="!dbAcademicLevelLocked || studentLevel === 'phd'"
             type="button"
@@ -123,11 +253,18 @@
               <strong>Doctoral Degree (PhD)</strong>
               <small>Doctor of Philosophy (Submits Dissertation)</small>
             </span>
+            <!-- Tick mark displayed only on the selected pill -->
             <span class="pill-check" *ngIf="studentLevel === 'phd'">✓</span>
           </button>
         </div>
 
+        <!--
+          Explanatory banners.
+          One banner appears depending on the selected level, explaining
+          which document type that level submits.
+        -->
         <!-- Explanatory notice banners -->
+        <!-- Banner for Master's candidates: they submit a Thesis -->
         <div *ngIf="studentLevel === 'masters'" class="level-info-banner banner-masters">
           <span class="banner-icon">🎓</span>
           <div class="banner-body">
@@ -136,6 +273,7 @@
           </div>
         </div>
 
+        <!-- Banner for PhD candidates: they submit a Dissertation -->
         <div *ngIf="studentLevel === 'phd'" class="level-info-banner banner-phd">
           <span class="banner-icon">🏛️</span>
           <div class="banner-body">
@@ -145,6 +283,18 @@
         </div>
       </div>
 
+      <!--
+        ---------------------------------------------------------------
+        FIELD 3: PUBLICATION TYPE
+        - Dropdown bound to `publicationType`
+        - Options come from `filteredPublicationTypes`, which the
+          component narrows down based on the academic level
+        - (change) calls onPublicationTypeChange() so the component can
+          react to the new selection (e.g. clear errors, adjust rules)
+        - The empty first option ("Select publication type") has value ""
+          so validation can detect that nothing was chosen
+        ---------------------------------------------------------------
+      -->
       <!-- Publication type -->
       <div class="form-group">
         <label for="publicationType">
@@ -159,8 +309,10 @@
           [class.invalid-field]="fieldErrors['publicationType']"
           [attr.aria-invalid]="!!fieldErrors['publicationType']"
         >
+          <!-- Placeholder option, empty value means "not selected" -->
           <option value="">Select publication type</option>
 
+          <!-- One option per allowed type; value is the stored key, label is the display text -->
           <option
             *ngFor="let opt of filteredPublicationTypes"
             [value]="opt.value"
@@ -169,6 +321,7 @@
           </option>
         </select>
 
+        <!-- Validation message for the publication type -->
         <small
           *ngIf="fieldErrors['publicationType']"
           class="field-error"
@@ -177,6 +330,12 @@
         </small>
       </div>
 
+      <!--
+        ---------------------------------------------------------------
+        FIELD 4: ABSTRACT
+        Multi-line text area (7 visible rows) bound to `abstract`.
+        ---------------------------------------------------------------
+      -->
       <!-- Abstract -->
       <div class="form-group">
         <label for="abstract">
@@ -193,6 +352,7 @@
           [attr.aria-invalid]="!!fieldErrors['abstract']"
         ></textarea>
 
+        <!-- Validation message for the abstract -->
         <small
           *ngIf="fieldErrors['abstract']"
           class="field-error"
@@ -201,16 +361,35 @@
         </small>
       </div>
 
+      <!--
+        ---------------------------------------------------------------
+        FIELD 5: AUTHORS (dynamic list)
+        - `authors` is a string array; each item gets its own text input
+        - trackBy: trackByIndex keeps Angular from re-creating inputs on
+          every keystroke, which would otherwise make the input lose focus
+          while typing (the array holds primitive strings)
+        - Inputs are bound with authors[i] so each edit updates the array
+        - A single error (fieldErrors['authors']) covers the whole list
+        ---------------------------------------------------------------
+      -->
       <!-- Authors -->
       <div class="form-group">
         <label>
           Authors <span>*</span>
         </label>
 
+        <!-- One row per author: a text input plus an optional Remove button -->
         <div
           class="author-row"
           *ngFor="let author of authors; let i = index; trackBy: trackByIndex"
         >
+          <!--
+            Author name input.
+            - [name] must be unique per input for ngModel inside a form,
+              so it is built from the index ("author0", "author1", ...)
+            - The placeholder is numbered for the user (index + 1)
+            - aria-label gives screen readers a meaningful name per input
+          -->
           <input
             type="text"
             [name]="'author' + i"
@@ -220,6 +399,12 @@
             [attr.aria-label]="'Author ' + (i + 1)"
           />
 
+          <!--
+            Remove button.
+            - Only shown when there is more than one author, so at least
+              one author row always remains
+            - Disabled during submission
+          -->
           <button
             *ngIf="authors.length > 1"
             type="button"
@@ -231,6 +416,7 @@
           </button>
         </div>
 
+        <!-- Validation message for the authors list (e.g. no author entered) -->
         <small
           *ngIf="fieldErrors['authors']"
           class="field-error"
@@ -239,6 +425,7 @@
           {{ fieldErrors['authors'] }}
         </small>
 
+        <!-- Adds a new, empty author row to the `authors` array -->
         <button
           type="button"
           class="add-author-button"
@@ -249,6 +436,13 @@
         </button>
       </div>
 
+      <!--
+        ---------------------------------------------------------------
+        FIELD 6: DOMAIN KEYWORDS
+        Free-text input holding comma-separated keywords. The component
+        is expected to split the string on commas when submitting.
+        ---------------------------------------------------------------
+      -->
       <!-- Keywords -->
       <div class="form-group">
         <label for="keywords">
@@ -265,8 +459,10 @@
           [attr.aria-invalid]="!!fieldErrors['keywords']"
         />
 
+        <!-- Permanent usage hint (always visible) -->
         <small>Separate multiple keywords with commas.</small>
 
+        <!-- Validation message for the keywords -->
         <small
           *ngIf="fieldErrors['keywords']"
           class="field-error"
@@ -275,6 +471,18 @@
         </small>
       </div>
 
+      <!--
+        ---------------------------------------------------------------
+        FIELD 7: PUBLICATION DOCUMENT (PDF upload)
+        - The native file input is restricted to PDFs through `accept`
+        - It is not bound with ngModel; the file is read in
+          onFileSelected($event) and stored in `selectedFile`
+        - A <label for="publicationFile"> is styled as the visible upload
+          button; clicking it opens the native file picker
+        - Type and size (max 100 MB) checks are performed in the component
+          and reported through fieldErrors['publicationFile']
+        ---------------------------------------------------------------
+      -->
       <!-- Publication PDF -->
       <div class="form-group">
         <label for="publicationFile">
@@ -282,6 +490,7 @@
         </label>
 
         <div class="file-upload">
+          <!-- Native file input (typically visually hidden via CSS; the label below acts as its button) -->
           <input
             id="publicationFile"
             name="publicationFile"
@@ -292,6 +501,7 @@
             [attr.aria-invalid]="!!fieldErrors['publicationFile']"
           />
 
+          <!-- Styled upload button linked to the input above through for="publicationFile" -->
           <label
             for="publicationFile"
             class="file-label"
@@ -302,6 +512,7 @@
           </label>
         </div>
 
+        <!-- Confirms which file the user picked (only shown after a file is selected) -->
         <small
           *ngIf="selectedFile"
           class="help-text"
@@ -309,6 +520,7 @@
           Selected file: {{ selectedFile.name }}
         </small>
 
+        <!-- Validation message for the file (wrong type, too large, missing) -->
         <small
           *ngIf="fieldErrors['publicationFile']"
           class="field-error"
@@ -318,8 +530,19 @@
         </small>
       </div>
 
+      <!--
+        ---------------------------------------------------------------
+        FORM ACTIONS
+        - Cancel: type="button" so it does NOT submit; calls cancel()
+        - Submit: type="submit" triggers (ngSubmit) on the <form>
+        - Both are disabled while isSubmitting is true, which prevents
+          double submissions
+        - The submit label changes to "Submitting..." as feedback
+        ---------------------------------------------------------------
+      -->
       <!-- Form actions -->
       <div class="form-actions">
+        <!-- Cancel and go back without submitting -->
         <button
           type="button"
           class="cancel-button"
@@ -329,6 +552,7 @@
           Cancel
         </button>
 
+        <!-- Submit the form; text switches while the request is in progress -->
         <button
           type="submit"
           class="submit-button"
