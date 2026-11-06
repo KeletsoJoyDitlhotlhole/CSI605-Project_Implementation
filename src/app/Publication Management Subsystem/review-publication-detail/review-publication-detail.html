@@ -1,86 +1,192 @@
 <!-- /review-publication-detail.html -->
 
+<!--
+  =====================================================================
+  REVIEW PUBLICATION DETAIL PAGE (Angular template, new control flow)
+  =====================================================================
+  Purpose:
+    Lets a lecturer open one publication from the review queue, read its
+    details, view the PDF, leave feedback comments, and then Approve or
+    Reject it.
+
+  Angular features used:
+    - Built-in control flow blocks (if / else if / else, for) instead of
+      the older *ngIf / *ngFor directives.
+    - Signals: values followed by () such as isLoadingPub(), status(),
+      showPdf() are signals and are read by calling them.
+    - Reactive forms: [formGroup], formControlName and (ngSubmit) for the
+      comment form (ReactiveFormsModule must be imported).
+    - routerLink for navigation (RouterLink must be imported).
+
+  Component members this template depends on:
+    Signals:
+      isLoadingPub()   -> true while the publication is being fetched
+      status()         -> current review status text (e.g. Pending, Approved)
+      showPdf()        -> whether the PDF viewer panel is open
+      pdfUrl()         -> sanitized URL of the PDF for the iframe
+      pdfLoading()     -> true while the PDF is being fetched
+      pdfError()       -> error text if the PDF failed to load
+      comments()       -> array of existing feedback comments
+      commentError()   -> error text for the comment form
+      savingComment()  -> true while a comment is being saved
+      message()        -> success message after approve or reject
+      error()          -> general error message
+    Plain properties:
+      pub                -> the publication object (null/undefined if not loaded)
+      showForm           -> whether the comment form is visible
+      isOwnPublication   -> true when the logged-in lecturer is an author
+      commentForm        -> FormGroup with "title" and "details" controls
+    Methods:
+      onShowPub(), toggleForm(), submitComment(), cancelComment(),
+      onApprove(), onReject()
+-->
+
+<!-- Root wrapper for the whole page; page-level styling hangs off this class -->
 <div class="review-page">
 
+  <!--
+    ===================================================================
+    PAGE HEADER
+    University logo, system name, and a link back to the review queue.
+    ===================================================================
+  -->
   <header class="page-header">
+    <!-- Left side of the header: logo plus titles -->
     <div class="header-left">
+      <!-- University logo. The path has a URL-encoded space (%20) because the file is named "ub logo.png" -->
       <img src="/assets/images/ub%20logo.png" alt="University of Botswana" class="ub-logo">
       <div class="header-title">
         <h1>University of Botswana</h1>
         <p>Publication Management System</p>
       </div>
     </div>
+    <!-- Navigation back to the list of publications waiting for review -->
     <a class="back-button" routerLink="/review-publication">Back to Review Queue</a>
   </header>
 
+  <!--
+    ===================================================================
+    MAIN CONTENT
+    Three possible states are rendered, controlled by one if / else if / else chain:
+      1. Loading   -> isLoadingPub() is true
+      2. Loaded    -> a publication object (pub) exists
+      3. Error     -> loading finished but there is no publication
+    ===================================================================
+  -->
   <main class="page-content">
 
+    <!-- STATE 1: LOADING. Shown while the publication is being fetched from the server -->
     @if (isLoadingPub()) {
       <div class="empty-card" style="text-align: center;">
         <h3>Loading Publication Details...</h3>
         <p>Please wait while we load the publication information.</p>
       </div>
+
+    <!-- STATE 2: LOADED. Shown when the publication data is available -->
     } @else if (pub) {
+
+      <!-- Page heading and short instruction -->
       <div class="page-heading">
         <h2>Review Publication</h2>
         <p>Review the full details below and make a decision.</p>
       </div>
 
+      <!-- Main card holding everything about this publication -->
       <div class="publication-detail">
 
+        <!--
+          TOP ROW OF THE CARD
+          Shows the reference number, the type badge and the status badge.
+        -->
         <div class="card-top">
+          <!-- Unique reference code of the publication -->
           <span class="reference">{{ pub.publication_reference }}</span>
+
+          <!--
+            Type badge, shown only if a type exists.
+            The nested ternary turns the stored type into a friendlier label:
+              'Thesis'       -> "Thesis (Master's)"
+              'Dissertation' -> "Dissertation (PhD)"
+              anything else  -> shown exactly as stored
+          -->
           @if (pub.publication_type) {
             <span class="type-badge">{{ pub.publication_type === 'Thesis' ? "Thesis (Master's)" : (pub.publication_type === 'Dissertation' ? "Dissertation (PhD)" : pub.publication_type) }}</span>
           }
+
+          <!--
+            Status badge (e.g. Pending, Approved, Rejected).
+            data-status is set to the lowercase status so CSS can colour the
+            badge with an attribute selector such as [data-status="approved"].
+          -->
           <span class="status-badge" [attr.data-status]="status().toLowerCase()">{{ status() }}</span>
         </div>
 
+        <!-- Publication title -->
         <h3 class="detail-title">{{ pub.title }}</h3>
 
+        <!--
+          META LINE
+          - Authors: the array is joined into one comma-separated string.
+            The ?. operator avoids an error if authors is missing.
+          - Submitted: uses submitted_at, and falls back to created_at when
+            submitted_at is null or undefined (the ?? operator).
+        -->
         <p class="meta">
           <span><strong>Authors:</strong> {{ pub.authors?.join(", ") }}</span>
           <span><strong>Submitted:</strong> {{ (pub.submitted_at ?? pub.created_at)}}</span>
         </p>
 
+        <!--
+          REVIEWER ASSIGNMENT BLOCK
+          A small diagram: [Submitter] --reviewed by--> [Assigned lecturer]
+          It shows who submitted the work and which lecturer must review it.
+        -->
         <!-- Student / Author → Lecturer reviewer mapping -->
         <div class="reviewer-assignment-block">
           <h4 class="assignment-title">Reviewer Assignment</h4>
           <div class="assignment-map">
+
+            <!-- LEFT PARTY: the student/author who submitted the publication -->
             <div class="assignment-party student-party">
               <div class="party-icon">🎓</div>
               <div class="party-info">
                 <span class="party-role">Submitted By</span>
                 <span class="party-name">
+                  <!-- Show the full name if at least one name part exists, otherwise "Unknown" -->
                   @if (pub.submitter_firstname || pub.submitter_surname) {
                     {{ pub.submitter_firstname }} {{ pub.submitter_surname }}
                   } @else {
                     <em>Unknown</em>
                   }
                 </span>
+                <!-- Submitter email, only if available -->
                 @if (pub.submitter_email) {
                   <small class="party-email">{{ pub.submitter_email }}</small>
                 }
               </div>
             </div>
 
+            <!-- MIDDLE: visual connector with the label "reviewed by" and an arrow -->
             <div class="assignment-connector">
               <span class="connector-line"></span>
               <span class="connector-label">reviewed by</span>
               <span class="connector-arrow">→</span>
             </div>
 
+            <!-- RIGHT PARTY: the lecturer assigned to review the publication -->
             <div class="assignment-party lecturer-party">
               <div class="party-icon">👨‍🏫</div>
               <div class="party-info">
                 <span class="party-role">Assigned Reviewer</span>
                 <span class="party-name">
+                  <!-- Show the lecturer's name if present, otherwise flag it as "Not assigned" -->
                   @if (pub.lecturer_firstname || pub.lecturer_surname) {
                     {{ pub.lecturer_firstname }} {{ pub.lecturer_surname }}
                   } @else {
                     <em class="unassigned">Not assigned</em>
                   }
                 </span>
+                <!-- Lecturer email, only if available -->
                 @if (pub.lecturer_email) {
                   <small class="party-email">{{ pub.lecturer_email }}</small>
                 }
@@ -89,6 +195,13 @@
           </div>
         </div>
 
+        <!--
+          KEYWORDS
+          Keywords are stored as one comma-separated string. It is split into
+          an array and each keyword is displayed as a list item (a tag).
+          "track keyword" gives Angular a unique key for each item, and
+          trim() removes spaces left over from the comma separation.
+        -->
         @if (pub.keywords) {
           <ul class="keywords">
             @for (keyword of pub.keywords.split(','); track keyword) {
@@ -97,11 +210,21 @@
           </ul>
         }
 
+        <!-- ABSTRACT SECTION: the full abstract text of the publication -->
         <section class="detail-section">
           <h4>Abstract</h4>
           <p class="full-abstract">{{ pub.abstract }}</p>
         </section>
 
+        <!--
+          PDF VIEWER (collapsible)
+          - The "open" class is added when showPdf() is true, so CSS can
+            expand or collapse the panel (for example with a height transition).
+          - The iframe is rendered only once pdfUrl() has a value, so no
+            empty frame loads before the file is ready.
+          - [src] needs a URL that has been marked safe with Angular's
+            DomSanitizer, otherwise Angular blocks it.
+        -->
         <!-- View the publication file -->
         <div class="pdf-viewer" [class.open]="showPdf()">
           <div class="pdf-viewer-inner">
@@ -111,6 +234,17 @@
           </div>
         </div>
 
+        <!--
+          DOCUMENT SECTION
+          A link that toggles the PDF viewer above.
+          - $event.preventDefault() stops the "#" link from jumping the page
+          - onShowPub() loads (if needed) and shows or hides the PDF
+          - The link text reflects the current state:
+              loading -> "Loading publication ..."
+              open    -> "Hide publication"
+              closed  -> "Show publication"
+          - If the PDF fails to load, pdfError() is shown under the link
+        -->
         <section class="detail-section">
           <h4>Document</h4>
           <a class="document-link" href="#" (click)="$event.preventDefault(); onShowPub()">
@@ -119,39 +253,65 @@
           @if (pdfError()) { <p class="err">{{ pdfError() }}</p>}
         </section>
 
+        <!--
+          CONFLICT-OF-INTEREST NOTICE
+          Shown when the logged-in lecturer is one of the authors. A lecturer
+          must not review their own work, so the review controls below are
+          hidden in that case.
+        -->
         @if (isOwnPublication) {
           <p class="message error" role="alert">
             You are the author of this publication. Another lecturer must review and make a decision on it.
           </p>
         }
 
+        <!--
+          FEEDBACK SECTION
+          Contains: a button to open or close the comment form, the form
+          itself, and the list of comments already added.
+        -->
         <section class="feedback">
           <h4>Feedback</h4>
 
+          <!-- Toggle button, hidden for the author of the publication. The label changes with the form state -->
           @if (!isOwnPublication) {
             <button type="button" class="link-btn" (click)="toggleForm()">
               {{ showForm ? 'Close' : 'Add review feedback' }}
             </button>
           }
 
+          <!--
+            COMMENT FORM (reactive form)
+            Visible only when it has been opened and the user is not the author.
+            - [formGroup] connects the form to commentForm in the component
+            - (ngSubmit) calls submitComment() when the form is submitted
+            - Each control is connected by formControlName ("title", "details")
+          -->
           @if (showForm && !isOwnPublication) {
             <form [formGroup]="commentForm" (ngSubmit)="submitComment()" class="comment-form">
+
+              <!-- Comment title (max 150 characters) -->
               <label for="comment-title">Comment title</label>
               <input id="comment-title" type="text" formControlName="title" maxlength="150" />
+              <!-- Error appears only after the field has been touched AND is invalid, to avoid showing errors too early -->
               @if (commentForm.controls.title.touched && commentForm.controls.title.invalid) {
                 <small class="err">Title is required.</small>
               }
 
+              <!-- Comment body -->
               <label for="comment-details">Details</label>
               <textarea id="comment-details" rows="4" formControlName="details"></textarea>
+              <!-- Same touched-and-invalid rule as the title field -->
               @if (commentForm.controls.details.touched && commentForm.controls.details.invalid) {
                 <small class="err">Please enter the comment details.</small>
               }
 
+              <!-- Server or save error, announced to screen readers through role="alert" -->
               @if (commentError()) {
                 <p class="err" role="alert">{{ commentError() }}</p>
               }
 
+              <!-- Form buttons: Cancel closes and resets the form; the submit button is disabled while saving -->
               <div class="actions">
                 <button type="button" (click)="cancelComment()">Cancel</button>
                 <button type="submit" [disabled]="savingComment()">
@@ -161,6 +321,12 @@
             </form>
           }
 
+          <!--
+            EXISTING COMMENTS
+            The list is shown only when there is at least one comment
+            (comments().length is 0, which is falsy, when empty).
+            "track c.id" uses each comment's id as its unique key.
+          -->
           @if (comments().length) {
             <ul class="comment-list">
               @for (c of comments(); track c.id) {
@@ -173,6 +339,12 @@
           }
         </section>
 
+        <!--
+          SUCCESS MESSAGE
+          Shown after a successful decision (approve or reject). role="status"
+          lets screen readers announce it politely. The link returns the user
+          to the review queue.
+        -->
         @if(message()) {
           <p class="message success" role="status">
             {{ message() }}
@@ -182,12 +354,21 @@
           </p>
         }
 
+        <!-- GENERAL ERROR MESSAGE, announced immediately through role="alert" -->
         @if (error()) {
           <p class="message error" role="alert">
             {{ error() }}
           </p>
         }
 
+        <!--
+          REVIEW ACTION BUTTONS
+          - Cancel: always visible; it is a link styled like a button that
+            returns to the dashboard without making a decision
+          - Reject and Approve: hidden when the user is the author, so
+            nobody can decide on their own publication
+          - Cancel reuses the "btn-reject" class for its visual style
+        -->
         <div class="review-actions">
           <a type="button" class="btn btn-reject" routerLink="/dashboard" style="text-decoration: none;">Cancel</a>
           @if (!isOwnPublication) {
@@ -197,6 +378,12 @@
         </div>
 
       </div>
+
+    <!--
+      STATE 3: LOADING ERROR (fallback)
+      Reached when loading has finished but pub is empty, for example a bad
+      or missing ID. The user is asked to go back and select the publication again.
+    -->
     } @else {
       <div class="empty-card">
         <h3>Loading Error</h3>
