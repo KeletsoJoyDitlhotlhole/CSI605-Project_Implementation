@@ -2,6 +2,24 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.27.
 
+## Installation
+
+Install the project dependencies before running the app for the first time:
+
+```bash
+npm install
+```
+
+### PDF report export (required)
+
+The admin report can be downloaded as **CSV** or **PDF**. The PDF export uses the `jspdf` and `jspdf-autotable` libraries, so run this command first or the **Download PDF** button will not work:
+
+```bash
+npm install jspdf jspdf-autotable
+```
+
+If the build shows CommonJS dependency warnings (for example `html2canvas`, `canvg` or `dompurify`), add those names to `allowedCommonJsDependencies` in `angular.json`.
+
 ## Development server
 
 To start a local development server, run:
