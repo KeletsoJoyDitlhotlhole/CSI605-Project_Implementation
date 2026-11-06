@@ -667,6 +667,23 @@
         </div>
 
         <div class="modal-footer">
+          <!-- Download the report as CSV or PDF. Both follow the Status and Publication Type filters above. Admin only. -->
+          @if (authService.hasRole('admin')) {
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="downloadReportCsv()"
+            >
+              ⬇ Download CSV
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="downloadReportPdf()"
+            >
+              ⬇ Download PDF
+            </button>
+          }
           <button type="button" class="btn btn-primary" (click)="closeModal()">Close Report</button>
         </div>
       </div>

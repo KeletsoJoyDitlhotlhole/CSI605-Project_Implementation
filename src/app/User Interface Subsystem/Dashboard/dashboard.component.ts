@@ -468,4 +468,306 @@ export class DashboardComponent implements OnInit {
       year: 'numeric'
     });
   }
+
+  /**
+   * Downloads the report as a CSV file (opens in Excel / Google Sheets).
+   *
+   * It exports exactly what the admin sees in the modal: the Status and
+   * Publication Type filters apply, so choosing "Thesis" and clicking
+   * Download gives a Thesis-only report, and "All Publication Types" gives
+   * everything.
+   *
+   * File sections:
+   *   1. Report title, generated date and the active filters
+   *   2. Summary (totals and approval / pending / rejected rates)
+   *   3. Breakdown by publication type
+   *   4. Reviewer / supervisor workload
+   *   5. Detailed publication registry
+   */
+  downloadReportCsv(): void {
+    // Only admins can export, and downloads only make sense in the browser
+    if (!isPlatformBrowser(this.platformId) || !this.authService.hasRole('admin')) {
+      return;
+    }
+
+    const stats = this.reportStats();
+    const pubs = this.filteredReportPublications();
+    const generated = this.reportGeneratedAt();
+
+    // Escapes one CSV cell. Text starting with = + - @ is prefixed with an
+    // apostrophe so spreadsheet apps never treat user-entered text as a formula.
+    const cell = (value: unknown): string => {
+      let text = String(value ?? '');
+      if (typeof value === 'string' && /^[=+\-@\t\r]/.test(text)) {
+        text = "'" + text;
+      }
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+    const row = (cells: unknown[]): string => cells.map(cell).join(',');
+
+    const personName = (first?: string | null, last?: string | null): string =>
+      `${first || ''} ${last || ''}`.trim();
+
+    const lines: string[] = [];
+
+    // 1. Title and active filters
+    lines.push(row(['University of Botswana - Publication & Review Report']));
+    lines.push(row(['Generated', generated.toISOString()]));
+    lines.push(row(['Status filter', this.reportStatusFilter()]));
+    lines.push(row(['Publication type filter', this.reportTypeFilter()]));
+    lines.push('');
+
+    // 2. Summary
+    lines.push(row(['SUMMARY']));
+    lines.push(row(['Measure', 'Count', 'Percentage']));
+    lines.push(row(['Total matching submissions', stats.total, '']));
+    lines.push(row(['Approved', stats.approved, `${stats.approvalRate}%`]));
+    lines.push(row(['Pending review', stats.pending, `${stats.pendingRate}%`]));
+    lines.push(row(['Rejected', stats.rejected, `${stats.rejectedRate}%`]));
+    lines.push('');
+
+    // 3. Breakdown by publication type
+    lines.push(row(['BREAKDOWN BY PUBLICATION TYPE']));
+    lines.push(row(['Publication type', 'Total', 'Approved', 'Pending', 'Rejected', 'Share']));
+    for (const item of stats.byType) {
+      lines.push(row([item.label, item.total, item.approved, item.pending, item.rejected, `${item.percentage}%`]));
+    }
+    lines.push('');
+
+    // 4. Reviewer workload
+    lines.push(row(['REVIEWER / SUPERVISOR WORKLOAD']));
+    lines.push(row(['Assigned lecturer', 'Email', 'Total', 'Approved', 'Pending', 'Rejected']));
+    for (const rev of stats.byReviewer) {
+      lines.push(row([rev.name, rev.email, rev.total, rev.approved, rev.pending, rev.rejected]));
+    }
+    lines.push('');
+
+    // 5. Detailed registry
+    lines.push(row([`DETAILED PUBLICATION REGISTRY (${pubs.length} records)`]));
+    lines.push(row([
+      'Reference', 'Title', 'Authors', 'Type', 'Track',
+      'Submitted by', 'Submitter email', 'Assigned reviewer',
+      'Submitted date', 'Status'
+    ]));
+    for (const pub of pubs) {
+      lines.push(row([
+        pub.publication_reference || pub.publication_id,
+        pub.title,
+        this.formatAuthors(pub.authors),
+        pub.publication_type || 'N/A',
+        pub.academic_level || pub.submitter_academic_level || '',
+        personName(pub.submitter_firstname, pub.submitter_surname),
+        pub.submitter_email || '',
+        personName(pub.lecturer_firstname, pub.lecturer_surname) || pub.lecturer_id || '',
+        this.formatDate(pub.submitted_at || pub.created_at),
+        pub.status || 'Pending'
+      ]));
+    }
+
+    // File name reflects the filters, e.g. publication-report-thesis-all-2026-11-06.csv
+    const fileName = this.reportFileName('csv');
+
+    // The BOM (\uFEFF) makes Excel read the file as UTF-8 so names display correctly
+    const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Downloads the report as a PDF (A4 landscape).
+   *
+   * Same data and filters as the CSV: the Status and Publication Type
+   * filters apply. The PDF libraries (jspdf and jspdf-autotable) are loaded
+   * on demand when the button is clicked, so they do not add to the initial
+   * page load.
+   *
+   * Requires:  npm install jspdf jspdf-autotable
+   */
+  async downloadReportPdf(): Promise<void> {
+    // Only admins can export, and downloads only make sense in the browser
+    if (!isPlatformBrowser(this.platformId) || !this.authService.hasRole('admin')) {
+      return;
+    }
+
+    try {
+      const [{ jsPDF }, autoTableModule] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable')
+      ]);
+      const autoTable = autoTableModule.default;
+
+      const stats = this.reportStats();
+      const pubs = this.filteredReportPublications();
+      const generated = this.reportGeneratedAt();
+
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const marginX = 40;
+      const maroon: [number, number, number] = [128, 0, 32];
+
+      // The standard PDF fonts cannot draw the em dash, so use a plain hyphen
+      const clean = (value: string): string => value.replace(/—/g, '-');
+      const personName = (first?: string | null, last?: string | null): string =>
+        `${first || ''} ${last || ''}`.trim();
+      const statusLabel = (value: string): string =>
+        value === 'all' ? 'All statuses' : value.charAt(0).toUpperCase() + value.slice(1);
+      const typeLabel = (value: string): string =>
+        value === 'all' ? 'All publication types' : value;
+
+      const lastY = (): number => (doc as any).lastAutoTable?.finalY ?? 100;
+
+      // Moves to a new page when there is not enough room left for the next block
+      const ensureSpace = (y: number, needed: number): number => {
+        if (y + needed > pageHeight - 50) {
+          doc.addPage();
+          return 50;
+        }
+        return y;
+      };
+
+      const sectionTitle = (text: string, y: number): number => {
+        const startY = ensureSpace(y, 60);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(40, 40, 40);
+        doc.text(text, marginX, startY);
+        return startY + 8;
+      };
+
+      const headStyles = { fillColor: maroon, textColor: 255, fontStyle: 'bold' as const };
+      const margin = { left: marginX, right: marginX };
+
+      // Title block
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(maroon[0], maroon[1], maroon[2]);
+      doc.text('University of Botswana', marginX, 50);
+      doc.setFontSize(13);
+      doc.setTextColor(40, 40, 40);
+      doc.text('Publication & Review Report', marginX, 70);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text(
+        `Generated: ${this.formatDate(generated.toISOString())}    |    ` +
+        `Status: ${statusLabel(this.reportStatusFilter())}    |    ` +
+        `Type: ${typeLabel(this.reportTypeFilter())}`,
+        marginX,
+        86
+      );
+
+      // 1. Summary
+      let y = sectionTitle('Summary', 110);
+      autoTable(doc, {
+        startY: y,
+        head: [['Measure', 'Count', 'Percentage']],
+        body: [
+          ['Total matching submissions', String(stats.total), ''],
+          ['Approved', String(stats.approved), `${stats.approvalRate}%`],
+          ['Pending review', String(stats.pending), `${stats.pendingRate}%`],
+          ['Rejected', String(stats.rejected), `${stats.rejectedRate}%`]
+        ],
+        theme: 'grid',
+        headStyles,
+        styles: { fontSize: 9 },
+        margin,
+        tableWidth: 360
+      });
+
+      // 2. Breakdown by publication type
+      y = sectionTitle('Breakdown by Publication Type', lastY() + 24);
+      autoTable(doc, {
+        startY: y,
+        head: [['Publication type', 'Total', 'Approved', 'Pending', 'Rejected', 'Share']],
+        body: stats.byType.map(item => [
+          item.label,
+          String(item.total),
+          String(item.approved),
+          String(item.pending),
+          String(item.rejected),
+          `${item.percentage}%`
+        ]),
+        theme: 'grid',
+        headStyles,
+        styles: { fontSize: 9 },
+        margin
+      });
+
+      // 3. Reviewer / supervisor workload
+      y = sectionTitle('Reviewer / Supervisor Workload', lastY() + 24);
+      autoTable(doc, {
+        startY: y,
+        head: [['Assigned lecturer', 'Email', 'Total', 'Approved', 'Pending', 'Rejected']],
+        body: stats.byReviewer.length
+          ? stats.byReviewer.map(rev => [
+              rev.name,
+              clean(rev.email),
+              String(rev.total),
+              String(rev.approved),
+              String(rev.pending),
+              String(rev.rejected)
+            ])
+          : [[{ content: 'No reviewer records found for current filter.', colSpan: 6, styles: { halign: 'center' } }]],
+        theme: 'grid',
+        headStyles,
+        styles: { fontSize: 9 },
+        margin
+      });
+
+      // 4. Detailed registry
+      y = sectionTitle(`Detailed Publication Registry (${pubs.length} records)`, lastY() + 24);
+      autoTable(doc, {
+        startY: y,
+        head: [['Reference', 'Title & authors', 'Type', 'Submitted by', 'Assigned reviewer', 'Date', 'Status']],
+        body: pubs.length
+          ? pubs.map(pub => [
+              String(pub.publication_reference || pub.publication_id),
+              `${pub.title}\nAuthors: ${clean(this.formatAuthors(pub.authors))}`,
+              pub.publication_type || 'N/A',
+              personName(pub.submitter_firstname, pub.submitter_surname) || '-',
+              personName(pub.lecturer_firstname, pub.lecturer_surname) || pub.lecturer_id || '-',
+              clean(this.formatDate(pub.submitted_at || pub.created_at)),
+              pub.status || 'Pending'
+            ])
+          : [[{ content: 'No publications match the selected filters.', colSpan: 7, styles: { halign: 'center' } }]],
+        theme: 'grid',
+        headStyles,
+        styles: { fontSize: 8, cellPadding: 4, overflow: 'linebreak' },
+        columnStyles: { 1: { cellWidth: 230 } },
+        margin
+      });
+
+      // Footer on every page: generated date and page numbers
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(120, 120, 120);
+        doc.text('University of Botswana - Publication Management System', marginX, pageHeight - 20);
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth - marginX, pageHeight - 20, { align: 'right' });
+      }
+
+      doc.save(this.reportFileName('pdf'));
+    } catch (error) {
+      console.error('Could not generate the PDF report:', error);
+    }
+  }
+
+  /** Builds the download file name from the active filters, e.g. publication-report-thesis-all-2026-11-06.pdf */
+  private reportFileName(extension: 'csv' | 'pdf'): string {
+    const slug = (value: string): string =>
+      value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'all';
+    return (
+      `publication-report-${slug(this.reportTypeFilter())}-${slug(this.reportStatusFilter())}-` +
+      `${this.reportGeneratedAt().toISOString().slice(0, 10)}.${extension}`
+    );
+  }
 }
