@@ -20,7 +20,7 @@ export class SubmitPublicationComponent {
   // Form fields
   title = '';
   abstract = '';
-  keywords = '';
+  keywords: string[] = [''];
   submittedBy = '';
   publicationType = '';
   studentLevel: 'masters' | 'phd' | '' = '';
@@ -72,6 +72,22 @@ export class SubmitPublicationComponent {
     'Computer Architecture & Hardware Design',
     'Health Informatics',
     'Theory of Computation'
+  ];
+
+  // Quick suggestions chips for popular domain keywords
+  readonly popularKeywords: string[] = [
+    'Data Science',
+    'Operating Systems',
+    'Databases',
+    'Artificial Intelligence',
+    'Machine Learning',
+    'Software Engineering',
+    'Computer Networks',
+    'Cybersecurity',
+    'Cloud Computing',
+    'Distributed Systems',
+    'Big Data Analytics',
+    'Internet of Things (IoT)'
   ];
 
   // Quick suggestions chips for popular areas
@@ -133,10 +149,10 @@ export class SubmitPublicationComponent {
           this.submittedBy = u.id;
         }
         const roles = (u.roles || []).map((r: string) => r.toLowerCase());
-        const userIsLecturer = (roles.includes('lecturer') || roles.includes('reviewer')) &&
-                               !roles.includes('student') &&
-                               !roles.includes('admin');
-        this.applyUserProfileFromDb(u.academic_level, u.name || '', userIsLecturer ? 'lecturer' : '');
+        const idUpper = (u.id || '').toUpperCase();
+        const userIsLecturer = idUpper.startsWith('LEC') ||
+                               ((roles.includes('lecturer') || roles.includes('reviewer')) && !roles.includes('student'));
+        this.applyUserProfileFromDb(u.academic_level, u.name || '', userIsLecturer ? 'lecturer' : (roles.includes('student') ? 'student' : ''));
       }
     });
 
@@ -147,10 +163,10 @@ export class SubmitPublicationComponent {
       if (u) {
         if (u.id) this.submittedBy = u.id;
         const roles = (u.roles || []).map((r: string) => r.toLowerCase());
-        const userIsLecturer = (roles.includes('lecturer') || roles.includes('reviewer')) &&
-                               !roles.includes('student') &&
-                               !roles.includes('admin');
-        this.applyUserProfileFromDb(u.academic_level, u.name || '', userIsLecturer ? 'lecturer' : '');
+        const idUpper = (u.id || '').toUpperCase();
+        const userIsLecturer = idUpper.startsWith('LEC') ||
+                               ((roles.includes('lecturer') || roles.includes('reviewer')) && !roles.includes('student'));
+        this.applyUserProfileFromDb(u.academic_level, u.name || '', userIsLecturer ? 'lecturer' : (roles.includes('student') ? 'student' : ''));
       }
       if (this.submittedBy) {
         this.lookupUserAcademicLevel(this.submittedBy);
@@ -184,6 +200,10 @@ export class SubmitPublicationComponent {
       this.publicationType = 'Dissertation';
     } else {
       this.dbAcademicLevelLocked = false;
+    }
+    // If not a lecturer, prevent any lecturer-only publication types from lingering
+    if (!this.isLecturer && (this.publicationType === 'Journal Article' || this.publicationType === 'Conference Paper')) {
+      this.publicationType = this.studentLevel === 'masters' ? 'Thesis' : (this.studentLevel === 'phd' ? 'Dissertation' : '');
     }
   }
 
@@ -237,6 +257,20 @@ export class SubmitPublicationComponent {
   }
 
   onPublicationTypeChange(): void {
+    if (this.isLecturer) {
+      if (this.publicationType === 'Thesis' || this.publicationType === 'Dissertation') {
+        this.fieldErrors['publicationType'] = 'Lecturers can only submit Journal Articles or Conference Papers.';
+      } else {
+        delete this.fieldErrors['publicationType'];
+      }
+      return;
+    }
+
+    if (this.publicationType === 'Journal Article' || this.publicationType === 'Conference Paper') {
+      this.fieldErrors['publicationType'] = 'Only lecturers are able to submit Journal Articles and Conference Papers. Students must submit a Thesis or Dissertation.';
+      return;
+    }
+
     if (this.publicationType === 'Thesis') {
       if (this.studentLevel === 'phd') {
         this.fieldErrors['publicationType'] = "Theses are reserved for Master's students. PhD students must submit a Dissertation.";
@@ -266,6 +300,61 @@ export class SubmitPublicationComponent {
   }
 
   trackByIndex(index: number): number { return index; }
+
+  get validKeywordCount(): number {
+    return this.keywords.filter(k => k && k.trim().length > 0).length;
+  }
+
+  getKeywordPlaceholder(index: number): string {
+    const examples = [
+      'e.g. Data Science',
+      'e.g. Operating Systems',
+      'e.g. Databases',
+      'e.g. Artificial Intelligence',
+      'e.g. Computer Networks',
+      'e.g. Cybersecurity',
+      'e.g. Software Engineering',
+      'e.g. Cloud Computing'
+    ];
+    return examples[index % examples.length] || 'Enter keyword (e.g. Data Science)';
+  }
+
+  addKeyword(initialValue = ''): void {
+    this.keywords = [...this.keywords, initialValue];
+    delete this.fieldErrors['keywords'];
+  }
+
+  removeKeyword(index: number): void {
+    if (this.keywords.length > 1) {
+      this.keywords = this.keywords.filter((_, i) => i !== index);
+    } else {
+      this.keywords = [''];
+    }
+    delete this.fieldErrors['keywords'];
+  }
+
+  toggleKeywordSuggestion(kw: string): void {
+    const existingIndex = this.keywords.findIndex(k => k.trim().toLowerCase() === kw.toLowerCase());
+    if (existingIndex !== -1) {
+      if (this.keywords.length > 1) {
+        this.keywords = this.keywords.filter((_, i) => i !== existingIndex);
+      } else {
+        this.keywords[0] = '';
+      }
+    } else {
+      const emptyIndex = this.keywords.findIndex(k => !k.trim());
+      if (emptyIndex !== -1) {
+        this.keywords[emptyIndex] = kw;
+      } else {
+        this.keywords = [...this.keywords, kw];
+      }
+    }
+    delete this.fieldErrors['keywords'];
+  }
+
+  isKeywordSelected(kw: string): boolean {
+    return this.keywords.some(k => k.trim().toLowerCase() === kw.toLowerCase());
+  }
 
   addAuthor(): void { this.authors = [...this.authors, '']; delete this.fieldErrors['authors']; }
 
@@ -311,10 +400,18 @@ export class SubmitPublicationComponent {
     }
     if (!this.publicationType) {
       this.fieldErrors['publicationType'] = 'Publication Type is required.';
-    } else if (this.studentLevel === 'masters' && this.publicationType === 'Dissertation') {
-      this.fieldErrors['publicationType'] = "Dissertations are reserved for PhD students. Master's students must submit a Thesis.";
-    } else if (this.studentLevel === 'phd' && this.publicationType === 'Thesis') {
-      this.fieldErrors['publicationType'] = "Theses are reserved for Master's students. PhD students must submit a Dissertation.";
+    } else if (this.isLecturer) {
+      if (this.publicationType !== 'Journal Article' && this.publicationType !== 'Conference Paper') {
+        this.fieldErrors['publicationType'] = 'Lecturers are only able to submit Journal Articles or Conference Papers.';
+      }
+    } else {
+      if (this.publicationType === 'Journal Article' || this.publicationType === 'Conference Paper') {
+        this.fieldErrors['publicationType'] = 'Only lecturers are able to submit Journal Articles and Conference Papers. Students must submit a Thesis or Dissertation.';
+      } else if (this.studentLevel === 'masters' && this.publicationType === 'Dissertation') {
+        this.fieldErrors['publicationType'] = "Dissertations are reserved for PhD students. Master's students must submit a Thesis.";
+      } else if (this.studentLevel === 'phd' && this.publicationType === 'Thesis') {
+        this.fieldErrors['publicationType'] = "Theses are reserved for Master's students. PhD students must submit a Dissertation.";
+      }
     }
 
     if (!this.selectedSubjectArea.trim()) {
@@ -327,8 +424,11 @@ export class SubmitPublicationComponent {
       this.fieldErrors['abstract'] = `Abstract exceeds the 1,000-word limit (currently ${this.abstractWordCount} words). Please reduce by ${this.abstractWordCount - 1000} words.`;
     }
 
-    if (!this.keywords.trim()) {
-      this.fieldErrors['keywords'] = 'Domain Keywords are required.';
+    const validKeywords = this.keywords.map(k => k?.trim()).filter(Boolean);
+    if (validKeywords.length === 0) {
+      this.fieldErrors['keywords'] = 'At least one Domain Keyword is required (e.g. Data Science, Operating Systems, Databases).';
+    } else if (this.keywords.some(k => !k?.trim())) {
+      this.fieldErrors['keywords'] = 'Complete or remove every empty keyword field.';
     }
     if (!this.authors.some(author => author?.trim())) {
       this.fieldErrors['authors'] = 'At least one Author is required.';
@@ -348,7 +448,7 @@ export class SubmitPublicationComponent {
       publicationType: 'Publication Type',
       subjectArea: 'Subject Area',
       abstract: 'Abstract',
-      keywords: 'Domain Keywords',
+      keywords: 'Domain Keywords (one per box)',
       authors: 'Author',
       publicationFile: 'PDF File'
     };
@@ -375,14 +475,12 @@ export class SubmitPublicationComponent {
     formData.append('abstract', this.abstract.trim());
 
     // Combine subject area into keywords if not already present
-    let finalKeywords = this.keywords.trim();
-    if (this.selectedSubjectArea) {
-      if (!finalKeywords) {
-        finalKeywords = this.selectedSubjectArea;
-      } else if (!finalKeywords.toLowerCase().includes(this.selectedSubjectArea.toLowerCase())) {
-        finalKeywords = `${this.selectedSubjectArea}, ${finalKeywords}`;
-      }
+    const validKeywords = this.keywords.map(k => k.trim()).filter(Boolean);
+    let combinedKeywords = [...validKeywords];
+    if (this.selectedSubjectArea && !combinedKeywords.some(k => k.toLowerCase() === this.selectedSubjectArea.toLowerCase())) {
+      combinedKeywords.unshift(this.selectedSubjectArea);
     }
+    const finalKeywords = combinedKeywords.join(', ');
     formData.append('keywords', finalKeywords);
     formData.append('subjectArea', this.selectedSubjectArea.trim());
     formData.append('submittedBy', this.submittedBy.trim());
@@ -405,7 +503,7 @@ export class SubmitPublicationComponent {
           // Reset form
           this.title = '';
           this.abstract = '';
-          this.keywords = '';
+          this.keywords = [''];
           this.selectedSubjectArea = '';
           this.subjectAreaSearch = '';
           this.publicationType = '';

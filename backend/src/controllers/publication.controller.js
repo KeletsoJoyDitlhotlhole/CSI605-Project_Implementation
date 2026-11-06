@@ -667,25 +667,52 @@ const submitPublication = async (req, res) => {
       });
     }
 
-    if (typeof keywords !== 'string' || !keywords.trim()) {
+    let keywordList = [];
+    if (Array.isArray(keywords)) {
+      keywordList = keywords.map(k => (typeof k === 'string' ? k.trim() : '')).filter(Boolean);
+    } else if (typeof keywords === 'string') {
+      const trimmed = keywords.trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            keywordList = parsed.map(k => (typeof k === 'string' ? k.trim() : '')).filter(Boolean);
+          }
+        } catch {
+          // ignore JSON parse error, fall through to delimiter splitting
+        }
+      }
+      if (keywordList.length === 0 && trimmed) {
+        keywordList = trimmed.split(/[,;]+/).map(k => k.trim()).filter(Boolean);
+      }
+    }
+
+    if (keywordList.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Domain keywords are required.'
+        message: 'At least one domain keyword is required (e.g. Data Science, Operating Systems, Databases).'
       });
     }
 
-    // Use the explicit submittedBy Student ID if provided, or fall back to the signed-in user's DB ID
+    // Use the explicit submittedBy Student/Lecturer ID if provided, or fall back to the signed-in user's DB ID
     const requestedSubmitter = typeof submittedBy === 'string' ? submittedBy.trim() : '';
     const tokenSubmitter = req.user?.registered ? req.user.id : (req.user?.id || '');
     const cleanSubmittedBy = (requestedSubmitter || tokenSubmitter || '').trim();
     if (!cleanSubmittedBy) {
       return res.status(400).json({
         success: false,
-        message: 'Submitting student ID is required.'
+        message: 'Submitting user ID is required.'
       });
     }
 
-    const cleanPubType = publicationType || 'Journal Article';
+    if (!publicationType || typeof publicationType !== 'string' || !publicationType.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Select a valid publication type.'
+      });
+    }
+
+    const cleanPubType = publicationType.trim();
     if (!ALLOWED_TYPES.includes(cleanPubType)) {
       return res.status(400).json({
         success: false,
@@ -723,11 +750,11 @@ const submitPublication = async (req, res) => {
 
     const cleanTitle = title.trim();
     const cleanAbstract = abstract.trim();
-    let cleanKeywords = keywords.trim();
     const cleanSubjectArea = typeof subjectArea === 'string' ? subjectArea.trim() : '';
-    if (cleanSubjectArea && !cleanKeywords.toLowerCase().includes(cleanSubjectArea.toLowerCase())) {
-      cleanKeywords = `${cleanSubjectArea}, ${cleanKeywords}`;
+    if (cleanSubjectArea && !keywordList.some(k => k.toLowerCase() === cleanSubjectArea.toLowerCase())) {
+      keywordList.unshift(cleanSubjectArea);
     }
+    const cleanKeywords = keywordList.join(', ');
     const cleanAuthors = authorList.map(author => author.trim());
 
     const abstractWords = cleanAbstract.split(/\s+/).filter(w => w.length > 0).length;
@@ -797,8 +824,21 @@ const submitPublication = async (req, res) => {
       });
     }
 
+    const isLecturerUser = roleLower === 'lecturer' || roleLower === 'reviewer';
+
+    // Enforce rule: Lecturers are the only ones able to submit Journal Articles & Conference papers
+    if ((cleanPubType === 'Journal Article' || cleanPubType === 'Conference Paper') && !isLecturerUser) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+
+      return res.status(403).json({
+        success: false,
+        message: 'Only lecturers are able to submit Journal Articles and Conference Papers. Graduate students must submit a Thesis or Dissertation.'
+      });
+    }
+
     // Enforce rule for Lecturers: Lecturers only submit Journal Articles or Conference Papers (no Thesis or Dissertation)
-    if ((roleLower === 'lecturer' || roleLower === 'reviewer') && (cleanPubType === 'Thesis' || cleanPubType === 'Dissertation')) {
+    if (isLecturerUser && (cleanPubType === 'Thesis' || cleanPubType === 'Dissertation')) {
       await client.query('ROLLBACK');
       transactionStarted = false;
 
