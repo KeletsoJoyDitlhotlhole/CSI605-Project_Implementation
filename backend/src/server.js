@@ -1,6 +1,8 @@
 // Import required modules
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 require("dotenv").config();
 const pool = require("./config/database");
 const keycloakConfig = require("./config/keycloak");
@@ -11,6 +13,7 @@ const port = process.env.PORT || 3000;
 
 // import routes
 const publicationsRoutes = require("./routes/publication.routes");
+const userRoutes = require("./routes/user.routes");
 
 // import auth middleware
 const { authenticate, optionalAuthenticate, mergeDbRoles } = require("./middleware/auth.middleware");
@@ -26,6 +29,14 @@ async function ensureAcademicLevelSchema() {
     await pool.query(`
       ALTER TABLE public."Users"
       ADD COLUMN IF NOT EXISTS academic_level VARCHAR(50);
+    `);
+    await pool.query(`
+      ALTER TABLE public."Users"
+      ADD COLUMN IF NOT EXISTS enabled BOOLEAN NOT NULL DEFAULT TRUE;
+    `);
+    await pool.query(`
+      ALTER TABLE public."Users"
+      ADD COLUMN IF NOT EXISTS keycloak_username VARCHAR(100);
     `);
     await pool.query(`
       UPDATE public."Users"
@@ -201,6 +212,7 @@ app.get("/api/users/:id", optionalAuthenticate, async (req, res) => {
 });
 
 // Mount routes/endpoints (supporting both root and /api/publications paths)
+app.use("/api/admin/users", userRoutes);
 app.use("/api/publications", publicationsRoutes);
 app.use(publicationsRoutes);
 

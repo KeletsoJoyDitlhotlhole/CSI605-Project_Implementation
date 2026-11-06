@@ -73,6 +73,17 @@
         </small>
       </div>
 
+      <!-- LECTURER MODE BANNER (When submitter is a Lecturer) -->
+      <div class="form-group lecturer-info-group" *ngIf="isLecturer">
+        <div class="level-info-banner banner-lecturer">
+          <span class="banner-icon">👨‍🏫</span>
+          <div class="banner-body">
+            <strong>Lecturer Submission Mode:</strong>
+            <span>You are submitting as a <strong>Lecturer</strong>. Lecturers are authorized to submit <strong>Journal Articles</strong> and <strong>Conference Papers</strong> for peer review.</span>
+          </div>
+        </div>
+      </div>
+
       <!-- FIELD 2: ACADEMIC LEVEL / DEGREE PROGRAM (Hidden for Lecturers; Students only submit Thesis or Dissertation) -->
       <div class="form-group academic-level-group" *ngIf="!isLecturer">
         <label>
@@ -151,7 +162,10 @@
         </select>
 
         <small class="field-hint" *ngIf="!isLecturer">
-          Students can only submit a <strong>Thesis</strong> (Master's) or <strong>Dissertation</strong> (PhD).
+          Students can only submit a <strong>Thesis</strong> (Master's) or <strong>Dissertation</strong> (PhD). Lecturers are the only ones able to submit Journal Articles & Conference papers.
+        </small>
+        <small class="field-hint" *ngIf="isLecturer">
+          Lecturers can only submit <strong>Journal Articles</strong> and <strong>Conference Papers</strong>.
         </small>
 
         <small *ngIf="fieldErrors['publicationType']" class="field-error">
@@ -288,21 +302,91 @@
         </button>
       </div>
 
-      <!-- FIELD 7: DOMAIN KEYWORDS -->
-      <div class="form-group">
-        <label for="keywords">
-          Domain Keywords <span>*</span>
-        </label>
+      <!-- FIELD 7: DOMAIN KEYWORDS (One keyword per field/box) -->
+      <div class="form-group keywords-group">
+        <div class="keywords-header">
+          <label>
+            Domain Keywords <span>*</span>
+          </label>
+          <span class="keyword-counter" *ngIf="validKeywordCount > 0">
+            {{ validKeywordCount }} keyword{{ validKeywordCount === 1 ? '' : 's' }} added
+          </span>
+        </div>
 
-        <input id="keywords" name="keywords" type="text" [(ngModel)]="keywords"
-          placeholder="e.g. Distributed Systems, Neural Networks, Query Optimization"
-          [class.invalid-field]="fieldErrors['keywords']" [attr.aria-invalid]="!!fieldErrors['keywords']" />
+        <p class="field-hint">
+          Add keywords for your publication one at a time (in different text fields/boxes, e.g. Data Science, Operating Systems, Databases). Click <strong>+ Add Keyword</strong> to insert another keyword field, or click suggested fields below:
+        </p>
 
-        <small class="field-hint">Separate multiple keywords with commas.</small>
+        <!-- Quick click suggestions for popular keyword disciplines -->
+        <div class="popular-keywords-bar">
+          <span class="popular-label">Suggested fields:</span>
+          <div class="popular-chips-list">
+            <button
+              type="button"
+              *ngFor="let suggestion of popularKeywords"
+              class="keyword-chip"
+              [class.keyword-chip--active]="isKeywordSelected(suggestion)"
+              (click)="toggleKeywordSuggestion(suggestion)"
+              [title]="isKeywordSelected(suggestion) ? 'Click to remove ' + suggestion : 'Click to add ' + suggestion"
+            >
+              <span class="chip-icon">{{ isKeywordSelected(suggestion) ? '✓' : '+' }}</span>
+              {{ suggestion }}
+            </button>
+          </div>
+        </div>
 
-        <small *ngIf="fieldErrors['keywords']" class="field-error">
+        <!-- Dynamic keyword boxes -->
+        <div class="keywords-list">
+          <div
+            class="keyword-row"
+            *ngFor="let kw of keywords; let i = index; trackBy: trackByIndex"
+          >
+            <div class="keyword-input-wrapper">
+              <span class="keyword-index-badge">Keyword {{ i + 1 }}</span>
+              <input
+                type="text"
+                [id]="'keyword-' + i"
+                [name]="'keyword' + i"
+                [(ngModel)]="keywords[i]"
+                (keydown.enter)="$event.preventDefault(); addKeyword()"
+                [placeholder]="getKeywordPlaceholder(i)"
+                [class.invalid-field]="!!fieldErrors['keywords'] && !keywords[i].trim()"
+                [attr.aria-label]="'Domain Keyword ' + (i + 1)"
+              />
+            </div>
+
+            <button
+              *ngIf="keywords.length > 1"
+              type="button"
+              class="cancel-button remove-keyword-btn"
+              (click)="removeKeyword(i)"
+              [disabled]="isSubmitting"
+              [title]="'Remove keyword ' + (i + 1)"
+            >
+              ✕ Remove
+            </button>
+          </div>
+        </div>
+
+        <small
+          *ngIf="fieldErrors['keywords']"
+          class="field-error"
+          role="alert"
+        >
           {{ fieldErrors['keywords'] }}
         </small>
+
+        <div class="keyword-actions-bar">
+          <button
+            type="button"
+            class="add-keyword-button"
+            (click)="addKeyword()"
+            [disabled]="isSubmitting"
+          >
+            + Add Keyword
+          </button>
+          <span class="keyword-hint-sub">Press <kbd>Enter</kbd> or click "+ Add Keyword" to add another keyword field</span>
+        </div>
       </div>
 
       <!-- FIELD 8: PUBLICATION DOCUMENT (PDF upload) -->

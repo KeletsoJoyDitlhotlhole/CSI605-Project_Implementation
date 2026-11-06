@@ -108,7 +108,7 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
       keywords: 'Artificial Intelligence, Speech Recognition, Setswana NLP, Machine Learning',
       status: 'Approved',
       publication_type: 'Conference Paper',
-      academic_level: 'Undergraduate',
+      academic_level: 'Faculty',
       authors: ['L. Kgosi', 'Dr. B. Mothobi'],
       created_at: '2026-04-18T14:30:00.000Z',
       submitted_at: '2026-04-18T14:30:00.000Z',
@@ -142,7 +142,7 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
       keywords: 'Cybersecurity, Machine Learning, Telecommunications, Network Security',
       status: 'Approved',
       publication_type: 'Conference Paper',
-      academic_level: 'Undergraduate',
+      academic_level: 'Faculty',
       authors: ['A. Molefe', 'M. Tau'],
       created_at: '2025-08-14T11:00:00.000Z',
       submitted_at: '2025-08-14T11:00:00.000Z',
@@ -291,21 +291,21 @@ export class ViewSearchPublicationComponent implements OnInit, OnDestroy {
 
     // 2. Academic Level Breakdown
     const levelConfigs = [
-      { key: 'undergrad', label: 'Undergraduate (Final Year)', color: '#0284c7' },
+      // Undergraduate removed — only Postgraduate (Master's, PhD) and Faculty/Lecturers shown
       { key: 'masters', label: "Master's (Postgraduate)", color: '#d97706' },
       { key: 'phd', label: 'Doctoral (PhD)', color: '#7c3aed' },
       { key: 'faculty', label: 'Faculty & Postdoctoral', color: '#800020' }
     ];
 
-    const levelCounts: Record<string, number> = { undergrad: 0, masters: 0, phd: 0, faculty: 0 };
+    const levelCounts: Record<string, number> = { masters: 0, phd: 0, faculty: 0 };
     for (const p of pubs) {
       const lvl = `${p.academic_level || ''} ${p.submitter_academic_level || ''} ${p.publication_type || ''}`.toLowerCase();
       if (lvl.includes('phd') || lvl.includes('doctoral') || lvl.includes('dissertation')) {
         levelCounts['phd']++;
       } else if (lvl.includes('master') || lvl.includes('msc') || lvl.includes('thesis')) {
         levelCounts['masters']++;
-      } else if (lvl.includes('undergrad') || lvl.includes('bsc') || lvl.includes('bachelor')) {
-        levelCounts['undergrad']++;
+      } else if (lvl.includes('undergrad') || lvl.includes('bsc') || lvl.includes('bachelor')) { levelCounts['masters']++;
+        // Mapped to postgraduate/faculty
       } else {
         levelCounts['faculty']++;
       }

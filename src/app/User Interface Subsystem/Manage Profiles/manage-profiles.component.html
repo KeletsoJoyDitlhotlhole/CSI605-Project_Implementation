@@ -1,0 +1,449 @@
+<div class="profiles-page">
+
+  <!-- PAGE HEADER -->
+  <header class="page-header">
+    <div class="header-left">
+      <img src="/assets/images/ub%20logo.png" alt="University of Botswana" class="ub-logo" />
+      <div class="header-title">
+        <h1>University of Botswana</h1>
+        <p>Publication Management System • System Administration</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <span
+        class="kc-status-pill"
+        [class.kc-status-pill--connected]="keycloakConnected()"
+        [class.kc-status-pill--offline]="!keycloakConnected()"
+        [title]="keycloakConnected() ? 'Two-way synchronization with Keycloak realm (publications) is active' : (keycloakError() || 'Keycloak server offline')"
+      >
+        <span class="status-dot"></span>
+        {{ keycloakConnected() ? 'Keycloak IAM Synced (publications)' : 'Keycloak Offline (Local DB)' }}
+      </span>
+
+      <a class="back-button" routerLink="/dashboard">
+        ← Back to Dashboard
+      </a>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="page-content">
+
+    <!-- Heading & Top Actions -->
+    <div class="page-heading-bar">
+      <div class="heading-text">
+        <span class="eyebrow">IDENTITY &amp; ACCESS MANAGEMENT</span>
+        <h2>Manage User Profiles</h2>
+        <p>
+          Create, update, activate/deactivate user accounts, assign academic tracks and supervisors, and synchronize changes two-way with <strong>Keycloak IAM</strong>.
+        </p>
+      </div>
+
+      <div class="heading-buttons">
+        <button
+          type="button"
+          class="btn btn-sync"
+          (click)="syncWithKeycloak()"
+          [disabled]="isSyncing() || isLoading()"
+          title="Pull recent changes made in Keycloak and push any unsynced database profiles"
+        >
+          {{ isSyncing() ? '⟳ Syncing with Keycloak...' : '⇄ Sync with Keycloak' }}
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="openCreateModal()"
+        >
+          + Create User Profile
+        </button>
+      </div>
+    </div>
+
+    <!-- Feedback Banners -->
+    @if (successBanner()) {
+      <div class="alert alert--success" role="status">
+        <span>✓ {{ successBanner() }}</span>
+        <button type="button" class="alert-close" (click)="successBanner.set('')">✕</button>
+      </div>
+    }
+
+    @if (errorBanner()) {
+      <div class="alert alert--error" role="alert">
+        <span>⚠️ {{ errorBanner() }}</span>
+        <button type="button" class="alert-close" (click)="errorBanner.set('')">✕</button>
+      </div>
+    }
+
+    <!-- KPI Summary Row -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Total Profiles</span>
+        <span class="stat-value">{{ stats().total }}</span>
+        <span class="stat-sub">{{ stats().synced }} synced in Keycloak • {{ stats().active }} active</span>
+      </div>
+
+      <div class="stat-card stat-card--student">
+        <span class="stat-label">Graduate Students</span>
+        <span class="stat-value">{{ stats().students }}</span>
+        <span class="stat-sub">Master's &amp; PhD Authors</span>
+      </div>
+
+      <div class="stat-card stat-card--lecturer">
+        <span class="stat-label">Lecturers &amp; Reviewers</span>
+        <span class="stat-value">{{ stats().lecturersCount }}</span>
+        <span class="stat-sub">Supervisors &amp; Peer Reviewers</span>
+      </div>
+
+      <div class="stat-card stat-card--admin">
+        <span class="stat-label">System Admins</span>
+        <span class="stat-value">{{ stats().admins }}</span>
+        <span class="stat-sub">Repository Administrators</span>
+      </div>
+    </section>
+
+    <!-- Search & Filter Toolbar -->
+    <section class="toolbar-card">
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+        <input
+          type="text"
+          placeholder="Search by name, User ID (e.g. STU000001), Keycloak username, or email..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)"
+        />
+      </div>
+
+      <div class="filter-controls">
+        <label>
+          Role:
+          <select [ngModel]="roleFilter()" (ngModelChange)="roleFilter.set($event)">
+            <option value="all">All Roles</option>
+            <option value="student">Students</option>
+            <option value="lecturer">Lecturers / Reviewers</option>
+            <option value="admin">System Admins</option>
+          </select>
+        </label>
+
+        <label>
+          Account Status:
+          <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+            <option value="all">All Statuses</option>
+            <option value="active">Active Only</option>
+            <option value="deactivated">Deactivated Only</option>
+          </select>
+        </label>
+
+        @if (searchTerm() || roleFilter() !== 'all' || statusFilter() !== 'all') {
+          <button type="button" class="btn-reset" (click)="resetFilters()">
+            ↺ Reset
+          </button>
+        }
+      </div>
+    </section>
+
+    <!-- Profiles Table -->
+    <section class="table-card">
+      @if (isLoading()) {
+        <div class="empty-state">
+          <p>Loading user profiles and reconciling with Keycloak IAM...</p>
+        </div>
+      } @else if (filteredUsers().length === 0) {
+        <div class="empty-state">
+          <p>No user profiles match your current search or filter criteria.</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="profiles-table">
+            <thead>
+              <tr>
+                <th>User ID &amp; Keycloak</th>
+                <th>Full Name &amp; Email</th>
+                <th>Role &amp; Track</th>
+                <th>Assigned Supervisor</th>
+                <th>Repository Activity</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (u of filteredUsers(); track u.user_id) {
+                <tr [class.row-disabled]="u.enabled === false">
+                  <td>
+                    <code class="user-id-badge">{{ u.user_id }}</code>
+                    <div class="kc-meta">
+                      @if (u.keycloak_synced) {
+                        <span class="kc-badge kc-badge--ok" title="Synchronized with Keycloak user '{{ u.keycloak_username }}'">
+                          ✓ KC: {{ u.keycloak_username }}
+                        </span>
+                      } @else {
+                        <span class="kc-badge kc-badge--pending" title="Click 'Sync with Keycloak' to provision in Keycloak">
+                          • Local DB ({{ u.keycloak_username || 'unsynced' }})
+                        </span>
+                      }
+                    </div>
+                  </td>
+
+                  <td>
+                    <strong class="user-fullname">{{ u.firstname }} {{ u.surname }}</strong>
+                    <div class="user-email">{{ u.email }}</div>
+                  </td>
+
+                  <td>
+                    <span class="role-pill" [ngClass]="roleBadgeClass(u.role)">
+                      {{ u.role }}
+                    </span>
+                    @if ((u.role || '').toLowerCase() === 'student' && u.academic_level) {
+                      <div class="track-sub">🎓 Track: <strong>{{ u.academic_level }}</strong></div>
+                    }
+                  </td>
+
+                  <td>
+                    @if ((u.role || '').toLowerCase() === 'student') {
+                      @if (u.supervisor_firstname || u.supervisor_surname) {
+                        <strong>{{ u.supervisor_firstname }} {{ u.supervisor_surname }}</strong>
+                        <div class="user-email">{{ u.supervisor_id }}</div>
+                      } @else if (u.supervisor_id) {
+                        <code>{{ u.supervisor_id }}</code>
+                      } @else {
+                        <span class="muted-text">Unassigned</span>
+                      }
+                    } @else {
+                      <span class="muted-text">—</span>
+                    }
+                  </td>
+
+                  <td>
+                    <div class="activity-chips">
+                      <span class="activity-chip" title="Publications submitted by this user">
+                        📄 {{ u.submitted_count || 0 }} submitted
+                      </span>
+                      @if ((u.role || '').toLowerCase() === 'lecturer') {
+                        <span class="activity-chip" title="Publications assigned to this lecturer for review">
+                          ✓ {{ u.assigned_review_count || 0 }} reviews
+                        </span>
+                      }
+                    </div>
+                  </td>
+
+                  <td>
+                    <span
+                      class="status-pill"
+                      [class.status-pill--active]="u.enabled !== false"
+                      [class.status-pill--inactive]="u.enabled === false"
+                    >
+                      {{ u.enabled !== false ? 'Active' : 'Deactivated' }}
+                    </span>
+                  </td>
+
+                  <td>
+                    <div class="row-actions">
+                      <button
+                        type="button"
+                        class="action-btn action-btn--edit"
+                        (click)="openEditModal(u)"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        class="action-btn"
+                        [class.action-btn--deactivate]="u.enabled !== false"
+                        [class.action-btn--activate]="u.enabled === false"
+                        (click)="toggleStatus(u)"
+                      >
+                        {{ u.enabled !== false ? 'Deactivate' : 'Activate' }}
+                      </button>
+
+                      <button
+                        type="button"
+                        class="action-btn action-btn--delete"
+                        (click)="deleteProfile(u)"
+                        title="Delete user profile"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+  </main>
+
+  <!-- CREATE / EDIT USER MODAL -->
+  @if (isModalOpen()) {
+    <div class="modal-backdrop" (click)="closeModal()" role="presentation">
+      <div
+        class="modal-dialog"
+        (click)="$event.stopPropagation()"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="profileModalTitle"
+      >
+        <div class="modal-header">
+          <div>
+            <span class="modal-eyebrow">POSTGRESQL &amp; KEYCLOAK IAM</span>
+            <h3 id="profileModalTitle">
+              {{ modalMode() === 'create' ? 'Create New User Profile' : 'Edit User Profile (' + formUserId + ')' }}
+            </h3>
+          </div>
+          <button type="button" class="modal-close" (click)="closeModal()">✕</button>
+        </div>
+
+        <form class="modal-body" (ngSubmit)="saveProfile()">
+          @if (formError) {
+            <div class="alert alert--error" role="alert">
+              {{ formError }}
+            </div>
+          }
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="formFirstName">First Name <span>*</span></label>
+              <input
+                id="formFirstName"
+                name="formFirstName"
+                type="text"
+                [(ngModel)]="formFirstName"
+                placeholder="e.g. Kabelo"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="formSurname">Surname <span>*</span></label>
+              <input
+                id="formSurname"
+                name="formSurname"
+                type="text"
+                [(ngModel)]="formSurname"
+                placeholder="e.g. Molefe"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="formEmail">University Email <span>*</span></label>
+              <input
+                id="formEmail"
+                name="formEmail"
+                type="email"
+                [(ngModel)]="formEmail"
+                placeholder="e.g. user@ub.ac.bw"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="formRole">System Role <span>*</span></label>
+              <select id="formRole" name="formRole" [(ngModel)]="formRole">
+                <option value="Student">Student (Submits Thesis / Dissertation)</option>
+                <option value="Lecturer">Lecturer / Reviewer (Submits Articles &amp; Reviews)</option>
+                <option value="System Admin">System Admin (Manages Profiles &amp; Reports)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="formUserId">
+                User ID {{ modalMode() === 'create' ? '(Optional — auto-generated if blank)' : '(Locked)' }}
+              </label>
+              <input
+                id="formUserId"
+                name="formUserId"
+                type="text"
+                maxlength="9"
+                [(ngModel)]="formUserId"
+                [disabled]="modalMode() === 'edit'"
+                placeholder="e.g. STU000005 or LEC000005"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="formUsername">Keycloak Username</label>
+              <input
+                id="formUsername"
+                name="formUsername"
+                type="text"
+                [(ngModel)]="formUsername"
+                [disabled]="modalMode() === 'edit' && !!formUsername"
+                placeholder="Auto-generated from name if blank"
+              />
+            </div>
+          </div>
+
+          @if (formRole === 'Student') {
+            <div class="form-row student-extra-box">
+              <div class="form-group">
+                <label for="formAcademicLevel">Academic Degree Track <span>*</span></label>
+                <select id="formAcademicLevel" name="formAcademicLevel" [(ngModel)]="formAcademicLevel">
+                  <option value="Master's">Master's Degree (Submits Thesis)</option>
+                  <option value="PhD">Doctoral / PhD (Submits Dissertation)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="formSupervisorId">Assigned Supervisor (Lecturer)</label>
+                <select id="formSupervisorId" name="formSupervisorId" [(ngModel)]="formSupervisorId">
+                  <option value="">-- Select Assigned Lecturer --</option>
+                  @for (lec of lecturers(); track lec.user_id) {
+                    <option [value]="lec.user_id">
+                      {{ lec.firstname }} {{ lec.surname }} ({{ lec.user_id }})
+                    </option>
+                  }
+                </select>
+              </div>
+            </div>
+          }
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="formPassword">
+                {{ modalMode() === 'create' ? 'Initial Keycloak Password' : 'Reset Keycloak Password (leave blank to keep current)' }}
+              </label>
+              <input
+                id="formPassword"
+                name="formPassword"
+                type="text"
+                [(ngModel)]="formPassword"
+                [placeholder]="modalMode() === 'create' ? 'Default: password' : 'Enter new password to reset in Keycloak'"
+              />
+            </div>
+
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="formEnabled"
+                  [(ngModel)]="formEnabled"
+                />
+                <span>Account Active (Enabled in PostgreSQL &amp; Keycloak)</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeModal()" [disabled]="isSaving()">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="isSaving()">
+              {{ isSaving() ? 'Saving & Syncing...' : (modalMode() === 'create' ? 'Create & Sync to Keycloak' : 'Save & Sync Changes') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>
+
