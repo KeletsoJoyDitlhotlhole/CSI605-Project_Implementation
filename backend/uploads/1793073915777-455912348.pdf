@@ -1,0 +1,26 @@
+1. Database related:
+   - update database to ensure it can track review changes
+   - map students to lecturers (who are also supervisors)
+
+2. Login Page:
+  - Implement RBAC using Keycloak
+  - Ensure dashboard is specific to the users
+
+3. Submit Publication Page:
+  - Match Student Submission with Lecturer automatically without student
+  - Clearly Indicate the type of paper it is
+  - Clear error messages on Missing Fields
+  - Ensure no duplicate research papers submitted
+  - Email Notification on Submitted Publication
+
+4. Review Publication Page:
+  - Implement Withdrawn functionality (and make sure only publications that were approved can only be withdrawn)
+  - Ensure lecturers can see only the publications of the student
+  - Ensure comments can be added when reviewing publication
+
+5. Search/View Publication:
+ - Fix the search function for publications
+
+6. Manage Profiles (PENDING)
+
+7. Generate Report (PENDING)
