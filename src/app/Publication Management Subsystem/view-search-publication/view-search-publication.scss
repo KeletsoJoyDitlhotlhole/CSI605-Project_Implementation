@@ -1338,12 +1338,17 @@ $text-muted: #94a3b8;
 
 /* =====================================================
    KPI CARDS GRID
+   Three cards share the full row equally. auto-fit also lets them
+   wrap on smaller screens and re-balances if a card is added or removed.
    ===================================================== */
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-auto-rows: auto;
   gap: 16px;
+  align-items: stretch;
+  width: 100%;
   margin-bottom: 24px;
 }
 
@@ -1351,6 +1356,8 @@ $text-muted: #94a3b8;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
   padding: 18px 20px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
@@ -1373,15 +1380,13 @@ $text-muted: #94a3b8;
   &--academic {
     border-left: 4px solid #d97706;
   }
-
-  &--collab {
-    border-left: 4px solid #7c3aed;
-  }
 }
 
 .kpi-content {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  flex: 1;
 }
 
 .kpi-label {
@@ -1398,6 +1403,7 @@ $text-muted: #94a3b8;
   color: $dark-text;
   line-height: 1.2;
   margin: 4px 0 2px;
+  overflow-wrap: anywhere;
 }
 
 .kpi-subtext {
@@ -1406,6 +1412,7 @@ $text-muted: #94a3b8;
 }
 
 .kpi-icon-box {
+  flex-shrink: 0;
   font-size: 26px;
   opacity: 0.85;
 }
@@ -1904,10 +1911,6 @@ $text-muted: #94a3b8;
 
 /* Responsive */
 @media (max-width: 992px) {
-  .kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .charts-grid-main,
   .charts-grid-secondary {
     grid-template-columns: 1fr;
