@@ -109,7 +109,7 @@ exports.getAllPublcations = async (req, res) => {
                 pub.keywords,
                 pub.status,
                 pub.publication_type,
-                pub.academic_level,
+                pub.academic_level, pub.subject_area,
                 pub.created_at,
                 pub.submitted_at,
 
@@ -186,7 +186,7 @@ exports.getPublicationById = async (req, res) => {
             pub.status,
             pub.submitted_by,
             pub.publication_type,
-            pub.academic_level,
+            pub.academic_level, pub.subject_area,
             pub.created_at,
             pub.submitted_at,
 
@@ -266,7 +266,7 @@ exports.getMySubmissions = async (req, res) => {
             pub.status,
             pub.submitted_by,
             pub.publication_type,
-            pub.academic_level,
+            pub.academic_level, pub.subject_area,
             pub.created_at,
             pub.updated_at,
             pub.submitted_at,
@@ -311,6 +311,18 @@ exports.getReviewList = async (req, res) => {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 30);
     const offset = (page - 1) * limit;
     const currentUserId = req.user?.id || null;
+    const sortParam = (req.query.sort || 'newest').toLowerCase();
+    const sortMap = {
+        newest: 'COALESCE(pub.submitted_at, pub.created_at) DESC',
+        oldest: 'COALESCE(pub.submitted_at, pub.created_at) ASC',
+        title_asc: 'pub.title ASC',
+        title_desc: 'pub.title DESC',
+        type_asc: 'COALESCE(pub.publication_type, \'\') ASC, COALESCE(pub.submitted_at, pub.created_at) DESC',
+        status_asc: 'pub.status ASC, COALESCE(pub.submitted_at, pub.created_at) DESC',
+        reference_asc: 'pub.publication_reference ASC',
+        submitter_asc: 'COALESCE(u.firstname, \'\') ASC, COALESCE(u.surname, \'\') ASC'
+    };
+    const orderBySql = sortMap[sortParam] || sortMap.newest;
 
     const sqlList = `
         SELECT 
@@ -322,7 +334,7 @@ exports.getReviewList = async (req, res) => {
             pub.status,
             pub.submitted_by,
             pub.publication_type,
-            pub.academic_level,
+            pub.academic_level, pub.subject_area,
             pub.created_at,
             pub.submitted_at,
 
@@ -363,10 +375,10 @@ exports.getReviewList = async (req, res) => {
         WHERE
             LOWER(pub.status) = ANY($1)
             AND ($2::text IS NULL OR pub.submitted_by <> $2)
-        ORDER BY 
-            pub.created_at 
-        DESC
-        LIMIT $3 OFFSET $4`;
+
+
+
+        ORDER BY ${orderBySql} LIMIT $3 OFFSET $4`;
 
     const sqlCount = `
         SELECT COUNT(*)::int AS total
@@ -981,11 +993,11 @@ const submitPublication = async (req, res) => {
         title,
         publication_type,
         lecturer_id,
-        academic_level
+        academic_level, subject_area
       )
       VALUES (
         $1, $2, $3, $4, NOW(), NOW(), NOW(),
-        $5, $6, $7, $8, $9, $10
+        $5, $6, $7, $8, $9, $10, $11
       )
       `,
       [
@@ -998,7 +1010,7 @@ const submitPublication = async (req, res) => {
         cleanTitle,
         cleanPubType,
         user.supervisor_id,
-        academicLevelToSave
+        academicLevelToSave, cleanSubjectArea || null
       ]
     );
 

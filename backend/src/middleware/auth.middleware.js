@@ -5,9 +5,9 @@
 // the decoded token payload (sub, email, realm_roles, user_id, etc.).
 //
 // The Keycloak identity is then mapped onto the application's "Users"
-// table (by `user_id`, `email`, or username/full name) so that
+// table (by `user_id`, `keycloak_username`, `email`, or username/full name) so that
 // `req.user.id` is always a valid DB user_id and `req.user.roles`
-// includes the user's role from the PostgreSQL "Users" table.
+// includes the user's role from both Keycloak and PostgreSQL "Users".
 
 const jwt = require("jsonwebtoken");
 const jwksClient = require("jwks-rsa");
@@ -66,12 +66,19 @@ function mergeDbRoles(jwtRoles = [], dbRole = "") {
   return Array.from(roleSet);
 }
 
+function jwtRolesToDbRole(jwtRoles = []) {
+  const lower = (jwtRoles || []).map((r) => String(r).toLowerCase());
+  if (lower.includes("admin")) return "System Admin";
+  if (lower.includes("lecturer") || lower.includes("reviewer")) return "Lecturer";
+  if (lower.includes("student")) return "Student";
+  return null;
+}
+
 /**
- * Look up the application user that corresponds to a Keycloak identity.
- * Matches on `user_id` claim, `email`, concatenated `firstname + surname` matching `username`,
- * or `firstName` + `lastName`.
+ * Look up the application user that corresponds to a Keycloak identity,
+ * and synchronize any changes made in Keycloak (or auto-provision a new Keycloak user into "Users").
  */
-async function resolveDbUser(decoded) {
+async function resolveDbUser(decoded, rawJwtRoles = []) {
   const userId = decoded.user_id || null;
   const email = decoded.email || null;
   const username = (decoded.preferred_username || "").trim();
@@ -79,21 +86,104 @@ async function resolveDbUser(decoded) {
   const familyName = (decoded.family_name || "").trim();
 
   const result = await db.query(
-    `SELECT user_id, firstname, surname, email, role, academic_level, supervisor_id
+    `SELECT user_id, firstname, surname, email, role, academic_level, supervisor_id, enabled, keycloak_username
      FROM "Users"
      WHERE ($1::text IS NOT NULL AND LOWER(user_id) = LOWER($1))
         OR ($2::text IS NOT NULL AND LOWER(email) = LOWER($2))
         OR ($3::text <> '' AND LOWER(user_id) = LOWER($3))
+        OR ($3::text <> '' AND LOWER(COALESCE(keycloak_username, '')) = LOWER($3))
         OR ($3::text <> '' AND LOWER(REPLACE(firstname || surname, ' ', '')) = LOWER(REPLACE($3, ' ', '')))
         OR ($4::text <> '' AND $5::text <> '' AND LOWER(firstname) = LOWER($4) AND LOWER(surname) = LOWER($5))
      ORDER BY
        (LOWER(user_id) = LOWER(COALESCE($1, ''))) DESC,
+       (LOWER(COALESCE(keycloak_username, '')) = LOWER(COALESCE($3, ''))) DESC,
        (LOWER(email) = LOWER(COALESCE($2, ''))) DESC
      LIMIT 1`,
     [userId, email, username, givenName, familyName]
   );
 
-  return result.rows[0] || null;
+  let dbUser = result.rows[0] || null;
+  const mappedKcRole = jwtRolesToDbRole(rawJwtRoles);
+
+  if (dbUser) {
+    // Sync any profile updates from Keycloak token into PostgreSQL "Users"
+    const nextFirst = givenName || dbUser.firstname;
+    const nextLast = familyName || dbUser.surname;
+    const nextEmail = email || dbUser.email;
+    const nextRole = mappedKcRole || dbUser.role;
+    const roleChanged = mappedKcRole && String(dbUser.role).toLowerCase() !== mappedKcRole.toLowerCase();
+    const profileChanged =
+      nextFirst !== dbUser.firstname ||
+      nextLast !== dbUser.surname ||
+      nextEmail !== dbUser.email ||
+      roleChanged ||
+      (username && dbUser.keycloak_username !== username);
+
+    if (profileChanged) {
+      try {
+        const upd = await db.query(
+          `UPDATE public."Users"
+           SET firstname = $1,
+               surname = $2,
+               email = $3,
+               role = $4,
+               keycloak_username = COALESCE($5, keycloak_username),
+               updated_at = NOW()
+           WHERE user_id = $6
+           RETURNING user_id, firstname, surname, email, role, academic_level, supervisor_id, enabled, keycloak_username`,
+          [nextFirst.slice(0, 50), nextLast.slice(0, 50), nextEmail.slice(0, 50), nextRole, username || null, dbUser.user_id]
+        );
+        if (upd.rows[0]) {
+          dbUser = upd.rows[0];
+        }
+      } catch {}
+    }
+    return dbUser;
+  }
+
+  // Auto-provision user created directly in Keycloak into PostgreSQL "Users"
+  try {
+    const targetRole = mappedKcRole || "Student";
+    const prefix = targetRole === "System Admin" ? "ADM" : targetRole === "Lecturer" ? "LEC" : "STU";
+    let newUserId = userId ? String(userId).trim().slice(0, 9).toUpperCase() : "";
+    if (!newUserId) {
+      const idRes = await db.query(
+        `SELECT user_id FROM public."Users" WHERE UPPER(user_id) LIKE $1 ORDER BY user_id DESC LIMIT 20`,
+        [`${prefix}%`]
+      );
+      let maxNum = 0;
+      for (const r of idRes.rows) {
+        const n = parseInt(String(r.user_id).slice(3), 10);
+        if (!isNaN(n) && n > maxNum) maxNum = n;
+      }
+      newUserId = `${prefix}${String(maxNum + 1).padStart(6, "0")}`;
+    }
+
+    const first = (givenName || username || "User").slice(0, 50);
+    const last = (familyName || "Account").slice(0, 50);
+    const mail = (email || `${username || newUserId.toLowerCase()}@ub.ac.bw`).slice(0, 50);
+    const acadLevel = targetRole === "Student" ? (decoded.academic_level || "Master's") : null;
+
+    let supId = null;
+    if (targetRole === "Student") {
+      const supRes = await db.query(
+        `SELECT user_id FROM public."Users" WHERE LOWER(role) = 'lecturer' ORDER BY user_id ASC LIMIT 1`
+      );
+      supId = supRes.rows[0]?.user_id || null;
+    }
+
+    const ins = await db.query(
+      `INSERT INTO public."Users"
+         (user_id, firstname, surname, email, role, supervisor_id, academic_level, enabled, keycloak_username, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, $8, CURRENT_DATE, NOW())
+       ON CONFLICT (user_id) DO NOTHING
+       RETURNING user_id, firstname, surname, email, role, academic_level, supervisor_id, enabled, keycloak_username`,
+      [newUserId, first, last, mail, targetRole, supId, acadLevel, username || null]
+    );
+    return ins.rows[0] || null;
+  } catch {
+    return null;
+  }
 }
 
 function devUser() {
@@ -150,8 +240,11 @@ function verifyToken(req, token) {
 
       // Map the Keycloak identity onto the application's Users table and merge DB role
       try {
-        const dbUser = await resolveDbUser(decoded);
+        const dbUser = await resolveDbUser(decoded, rawJwtRoles);
         if (dbUser) {
+          if (dbUser.enabled === false) {
+            return resolve({ status: 403, error: "Your account has been deactivated by an administrator." });
+          }
           req.user.id = dbUser.user_id;
           req.user.email = dbUser.email || req.user.email;
           req.user.firstName = dbUser.firstname || req.user.firstName;

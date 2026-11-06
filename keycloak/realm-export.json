@@ -97,7 +97,9 @@
       "enabled": true,
       "emailVerified": true,
       "attributes": {
-        "user_id": ["U0000001"]
+        "user_id": [
+          "U0000001"
+        ]
       },
       "credentials": [
         {
@@ -113,13 +115,15 @@
     },
     {
       "username": "lecturer1",
-      "email": "lecturer1@ub.ac.bw",
+      "email": "reviewer1@ub.ac.bw",
       "firstName": "Keletso",
       "lastName": "Ditlhotlhole",
       "enabled": true,
       "emailVerified": true,
       "attributes": {
-        "user_id": ["U0000002"]
+        "user_id": [
+          "U0000002"
+        ]
       },
       "credentials": [
         {
@@ -142,7 +146,9 @@
       "enabled": true,
       "emailVerified": true,
       "attributes": {
-        "user_id": ["LEC000001"]
+        "user_id": [
+          "LEC000001"
+        ]
       },
       "credentials": [
         {
@@ -165,7 +171,9 @@
       "enabled": true,
       "emailVerified": true,
       "attributes": {
-        "user_id": ["U0000002"]
+        "user_id": [
+          "U0000002"
+        ]
       },
       "credentials": [
         {
@@ -188,7 +196,9 @@
       "enabled": true,
       "emailVerified": true,
       "attributes": {
-        "user_id": ["U0000003"]
+        "user_id": [
+          "U0000003"
+        ]
       },
       "credentials": [
         {
@@ -199,6 +209,151 @@
       ],
       "realmRoles": [
         "admin",
+        "default-roles-publications"
+      ]
+    },
+    {
+      "username": "thabomotsumi",
+      "email": "thabo.motsumi@example.com",
+      "firstName": "Thabo",
+      "lastName": "Motsumi",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "user_id": [
+          "ADM000001"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin",
+        "default-roles-publications"
+      ]
+    },
+    {
+      "username": "lesegobanda",
+      "email": "lesego.banda@example.com",
+      "firstName": "Lesego",
+      "lastName": "Banda",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "user_id": [
+          "ADM000002"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin",
+        "default-roles-publications"
+      ]
+    },
+    {
+      "username": "naledikgosidintsi",
+      "email": "naledi.kgosidintsi@example.com",
+      "firstName": "Naledi",
+      "lastName": "Kgosidintsi",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "user_id": [
+          "LEC000002"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "lecturer",
+        "reviewer",
+        "default-roles-publications"
+      ]
+    },
+    {
+      "username": "keletsoditlhotlhole",
+      "email": "ditlhotlholekeletso1@gmail.com",
+      "firstName": "Keletso",
+      "lastName": "Ditlhotlhole",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "user_id": [
+          "02002023"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "student",
+        "default-roles-publications"
+      ]
+    },
+    {
+      "username": "thatomooketsi",
+      "email": "thatomooketsi@gmail.com",
+      "firstName": "thato",
+      "lastName": "mooketsi",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "user_id": [
+          "STU000001"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "student",
+        "default-roles-publications"
+      ]
+    },
+    {
+      "username": "boitumeloseboni",
+      "email": "boitumelo.seboni@example.com",
+      "firstName": "Boitumelo",
+      "lastName": "Seboni",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "user_id": [
+          "STU000002"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "student",
         "default-roles-publications"
       ]
     }

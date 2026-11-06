@@ -14,18 +14,81 @@
   <main class="page-content">
 
     <div class="page-heading">
-      <h2>Review Publications</h2>
-      <p>Publications waiting for a decision, and those that were rejected. Select one to read it in full.</p>
+      <h2>Review Submitted Publications</h2>
+      <p>Publications waiting for a decision, and those that were rejected. Order, filter, or select one to read it in full.</p>
     </div>
 
-    <!-- <p class="result-count">2 publications</p> -->
+    <!-- Ordering & Filtering Toolbar for Submitted Publications -->
+    <section class="review-toolbar" aria-label="Order and filter submitted publications">
+      <div class="toolbar-search">
+        <input
+          type="text"
+          class="toolbar-input"
+          placeholder="Search submitted publications by title, author, submitter, or reference..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)"
+        />
+      </div>
+
+      <div class="toolbar-controls">
+        <div class="control-group">
+          <label for="reviewSortSelect">Order Submitted By:</label>
+          <select
+            id="reviewSortSelect"
+            class="toolbar-select"
+            [ngModel]="selectedSort()"
+            (ngModelChange)="onSortChange($event)"
+          >
+            @for (opt of sortOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="reviewTypeSelect">Type:</label>
+          <select
+            id="reviewTypeSelect"
+            class="toolbar-select"
+            [ngModel]="selectedTypeFilter()"
+            (ngModelChange)="selectedTypeFilter.set($event)"
+          >
+            <option value="all">All Types</option>
+            <option value="Thesis">Thesis (Master's)</option>
+            <option value="Dissertation">Dissertation (PhD)</option>
+            <option value="Journal Article">Journal Article</option>
+            <option value="Conference Paper">Conference Paper</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="reviewStatusSelect">Status:</label>
+          <select
+            id="reviewStatusSelect"
+            class="toolbar-select"
+            [ngModel]="selectedStatusFilter()"
+            (ngModelChange)="selectedStatusFilter.set($event)"
+          >
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending Review</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+
+        @if (searchTerm() || selectedTypeFilter() !== 'all' || selectedStatusFilter() !== 'all' || selectedSort() !== 'newest') {
+          <button type="button" class="toolbar-reset-btn" (click)="resetFilters()">
+            ↺ Reset
+          </button>
+        }
+      </div>
+    </section>
 
     <p class="result-count">
       Showing {{ rangeStart() }}–{{ rangeEnd() }} of {{ total() }}
       {{ total() === 1 ? 'publication' : 'publications' }}
     </p>
 
-    @if (total() === 0) {
+    @if (publications().length === 0) {
       <div class="empty-card" role="status">
 
         <div class="empty-icon">
@@ -35,7 +98,7 @@
         <h3>All caught up</h3>
 
         <p>
-          There are no publications waiting for review.
+          There are no matching publications waiting for review.
           New submissions will appear here as soon as they are made.
         </p>
 
@@ -47,7 +110,6 @@
     } @else {
       <div class="publication-list">
         @for (pub of publications(); track pub.publication_id) {
-          <!-- Card 1 -->
           <a class="publication-card"
             [routerLink]="['/review-publication', pub.publication_id]"
             [state]="{ publication: pub}">
@@ -115,8 +177,6 @@
         }
       </div>
     }
-
-    
 
     @if (totalPages() > 1) {
       <nav class="pagination" aria-label="Review queue pages">

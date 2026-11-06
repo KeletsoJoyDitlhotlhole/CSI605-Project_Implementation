@@ -52,8 +52,8 @@ export class PublicationService {
     }
 
     // Get publication with pending reviews
-    fetchReviewList(page = 1, limit = 10): Observable<ReviewResponse> {
-        const params = new HttpParams().set("page", page.toString()).set("limit", limit.toString());
+    fetchReviewList(page = 1, limit = 10, sort = 'newest'): Observable<ReviewResponse> {
+        const params = new HttpParams().set("page", page.toString()).set("limit", limit.toString()).set("sort", sort || 'newest');
         return this._httpClient.get<ReviewResponse>(`${this._apiUrl}review`, { params });
     }
 

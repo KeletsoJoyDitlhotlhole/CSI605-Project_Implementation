@@ -336,3 +336,92 @@ $text-gray: #666666;
     transition: none;
   }
 }
+
+
+/* =========================
+   ORDER & FILTER TOOLBAR
+   ========================= */
+
+.review-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+  margin-bottom: 22px;
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.toolbar-search {
+  width: 100%;
+}
+
+.toolbar-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid #d0d5dd;
+  border-radius: 7px;
+  font-size: 14px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus {
+    border-color: $ub-maroon;
+    box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.12);
+  }
+}
+
+.toolbar-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #344054;
+    white-space: nowrap;
+  }
+}
+
+.toolbar-select {
+  padding: 8px 12px;
+  border: 1px solid #d0d5dd;
+  border-radius: 7px;
+  background: $white;
+  font-size: 13px;
+  color: $black;
+  cursor: pointer;
+
+  &:focus {
+    border-color: $ub-maroon;
+    outline: none;
+  }
+}
+
+.toolbar-reset-btn {
+  padding: 8px 14px;
+  border: 1px solid rgba(128, 0, 32, 0.25);
+  border-radius: 7px;
+  background: $ub-maroon-light;
+  color: $ub-maroon;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+
+  &:hover {
+    background: $ub-maroon;
+    color: $white;
+  }
+}

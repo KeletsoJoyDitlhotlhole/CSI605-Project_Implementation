@@ -6,6 +6,7 @@ import { SubmitPublicationComponent } from '../Publication Management Subsystem/
 import { ReviewPublication } from '../Publication Management Subsystem/review-publication/review-publication';
 import { ReviewPublicationDetail } from '../Publication Management Subsystem/review-publication-detail/review-publication-detail';
 import { ViewSearchPublicationComponent } from '../Publication Management Subsystem/view-search-publication/view-search-publication';
+import { ManageProfilesComponent } from './Manage Profiles/manage-profiles.component';
 
 import { roleGuard } from '../services/role.guard';
 
@@ -14,7 +15,6 @@ export const routes: Routes = [
     path: 'login',
     component: Login
   },
-
   {
     path: 'dashboard',
     component: DashboardComponent
@@ -29,13 +29,16 @@ export const routes: Routes = [
     component: ReviewPublication,
     canActivate: [roleGuard(['lecturer', 'reviewer', 'admin'])]
   },
-
   {
-    path: "review-publication/:id",
+    path: 'review-publication/:id',
     component: ReviewPublicationDetail,
     canActivate: [roleGuard(['lecturer', 'reviewer', 'admin'])]
   },
-
+  {
+    path: 'manage-profiles',
+    component: ManageProfilesComponent,
+    canActivate: [roleGuard(['admin'])]
+  },
   {
     path: 'search-publications',
     component: ViewSearchPublicationComponent
@@ -48,17 +51,15 @@ export const routes: Routes = [
     path: 'view-publications',
     component: ViewSearchPublicationComponent
   },
-
   {
     path: '',
     redirectTo: 'login',
     pathMatch: 'full'
   },
-
   {
-    path: "**",
-    loadComponent: () => 
-      import("../not-found/not-found")
-      .then(m => m.NotFound)
+    path: '**',
+    loadComponent: () =>
+      import('../not-found/not-found')
+        .then(m => m.NotFound)
   }
 ];
