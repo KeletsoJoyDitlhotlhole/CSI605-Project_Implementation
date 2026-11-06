@@ -1,0 +1,117 @@
+PROJECT ROOT/
+│
+├── api/                                        # Node.js API service
+│   ├── server.js                              # Starts the API server and handles API requests
+│   └── package.json                           # API dependencies and npm scripts
+│
+├── backend/                                    # Main backend application
+│   ├── src/
+│   │
+│   │   ├── config/                            # Backend configuration
+│   │   │   ├── database.js                    # Configures the database connection
+│   │   │   └── keycloak.js                    # Configures Keycloak authentication
+│   │   │
+│   │   ├── controllers/                       # Handles application request/response logic
+│   │   │   └── publication.controller.js      # Processes publication-related requests
+│   │   │
+│   │   ├── middleware/                        # Processes requests before they reach controllers
+│   │   │   ├── auth.middleware.js             # Verifies authenticated users/access tokens
+│   │   │   ├── role.middleware.js             # Controls access based on user roles
+│   │   │   └── upload.middleware.js           # Handles publication/file uploads
+│   │   │
+│   │   ├── routes/                            # Defines backend API endpoints
+│   │   │   ├── auth.routes.js                 # Authentication-related API routes
+│   │   │   └── publication.routes.js          # Publication-related API routes
+│   │   │
+│   │   ├── services/                          # Reusable backend business services
+│   │   │   └── email.service.js               # Handles email-related functionality
+│   │   │
+│   │   └── server.js                          # Main backend server entry point
+│   │
+│   ├── .env                                   # Backend environment variables
+│   └── package.json                           # Backend dependencies and npm scripts
+│
+├── keycloak/                                   # Authentication and authorization configuration
+│   └── realm-export.json                       # Keycloak realm, roles, clients and auth settings
+│
+├── src/                                        # Angular frontend source code
+│   ├── app/
+│   │
+│   │   ├── models/
+│   │   │   └── publication.model.ts           # Defines the structure of publication data
+│   │
+│   │   ├── Publication Management Subsystem/  # Publication management functionality
+│   │   │
+│   │   │   ├── review-publication/            # Displays publications available for review
+│   │   │   │   ├── review-publication.ts      # Component logic
+│   │   │   │   ├── review-publication.html    # Component interface
+│   │   │   │   └── review-publication.scss    # Component styling
+│   │   │   │
+│   │   │   ├── review-publication-detail/     # Displays details of selected publications
+│   │   │   │   ├── review-publication-detail.ts
+│   │   │   │   ├── review-publication-detail.html
+│   │   │   │   └── review-publication-detail.scss
+│   │   │   │
+│   │   │   ├── Submit Publication/            # Handles new publication submissions
+│   │   │   │   ├── submit-publication.component.ts
+│   │   │   │   ├── submit-publication.component.html
+│   │   │   │   └── submit-publication.component.scss
+│   │   │   │
+│   │   │   └── view-search-publication/       # Provides publication viewing and searching
+│   │   │       ├── view-search-publication.ts
+│   │   │       ├── view-search-publication.html
+│   │   │       └── view-search-publication.scss
+│   │   │
+│   │   ├── services/                          # Angular services and security functionality
+│   │   │   ├── auth.service.ts                # Handles frontend authentication
+│   │   │   ├── auth.interceptor.ts            # Adds authentication data to HTTP requests
+│   │   │   ├── publication.service.ts         # Connects frontend to publication API endpoints
+│   │   │   └── role.guard.ts                  # Protects routes based on user roles
+│   │   │
+│   │   ├── User Interface Subsystem/
+│   │   │
+│   │   │   ├── Dashboard/
+│   │   │   │   ├── dashboard.component.ts     # Dashboard logic
+│   │   │   │   ├── dashboard.component.html   # Dashboard interface
+│   │   │   │   ├── dashboard.component.scss   # Dashboard styling
+│   │   │   │   ├── student-dashboard.component.ts
+│   │   │   │   └── studentDashboard.component.html
+│   │   │   │
+│   │   │   ├── Login/
+│   │   │   │   ├── login.component.ts         # Login component logic
+│   │   │   │   ├── login.html                 # Login interface
+│   │   │   │   └── login.css                  # Login styling
+│   │   │   │
+│   │   │   └── user-interface.routes.ts       # UI-specific Angular routes
+│   │   │
+│   │   ├── not-found/                         # Page displayed for invalid routes
+│   │   │   ├── not-found.ts
+│   │   │   ├── not-found.html
+│   │   │   └── not-found.css
+│   │   │
+│   │   ├── app.component.ts                   # Root Angular component
+│   │   ├── app.component.html                 # Root application template
+│   │   ├── app.component.css                  # Root component styling
+│   │   ├── app.config.ts                      # Application-wide Angular configuration
+│   │   └── app.routes.ts                      # Main Angular routing configuration
+│   │
+│   ├── assets/
+│   │   └── images/
+│   │       └── ub logo.png                    # Application logo/image asset
+│   │
+│   ├── index.html                             # Main HTML page hosting the Angular application
+│   ├── main.ts                                # Angular application entry point
+│   └── styles.css                             # Global application styling
+│
+├── .env                                        # Project environment variables
+├── angular.json                                # Angular project/build configuration
+├── package.json                                # Main project dependencies and scripts
+├── tsconfig.json                               # TypeScript compiler configuration
+│
+├── database.sql                                # Database SQL structure/data
+├── db.sql                                      # Additional database SQL script
+├── iteration2dbdump.sql                        # Database dump for project iteration
+│
+├── docker-compose.yml                          # Defines containerised project services
+│
+└── Publications_API.postman_collection.json   # Postman collection for testing API endpoints
