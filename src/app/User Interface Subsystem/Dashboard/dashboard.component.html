@@ -16,200 +16,204 @@
 
     <div class="header-user-status">
       @if (user()) {
-        <div class="notification-bell-wrapper">
-          <button
-            type="button"
-            class="notification-bell-btn"
-            (click)="toggleNotifications($event)"
-            [attr.aria-expanded]="isNotificationOpen()"
-            [attr.aria-label]="(isReviewerRole() ? 'Pending review notifications (' : 'Review status notifications (') + bellNotificationCount() + ')'"
-            [title]="isReviewerRole() ? (bellNotificationCount() + ' pending publication(s) to review') : (bellNotificationCount() + ' reviewed publication(s)')"
-          >
-            <svg
-              class="bell-svg"
-              [class.bell-svg--ringing]="bellNotificationCount() > 0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
-            <span
-              class="bell-badge"
-              [class.bell-badge--active]="bellNotificationCount() > 0"
-            >
-              {{ bellNotificationCount() }}
-            </span>
-          </button>
 
-          @if (isNotificationOpen()) {
-            <div
-              class="notification-dropdown"
-              (click)="$event.stopPropagation()"
-              role="region"
-              [attr.aria-label]="isReviewerRole() ? 'Pending review notifications' : 'Reviewed publications notifications'"
+        <!-- Notification bell: hidden for administrators (they do not submit or review) -->
+        @if (!authService.hasRole('admin')) {
+          <div class="notification-bell-wrapper">
+            <button
+              type="button"
+              class="notification-bell-btn"
+              (click)="toggleNotifications($event)"
+              [attr.aria-expanded]="isNotificationOpen()"
+              [attr.aria-label]="(isReviewerRole() ? 'Pending review notifications (' : 'Review status notifications (') + bellNotificationCount() + ')'"
+              [title]="isReviewerRole() ? (bellNotificationCount() + ' pending publication(s) to review') : (bellNotificationCount() + ' reviewed publication(s)')"
             >
-              @if (isReviewerRole()) {
-                <!-- REVIEWER / LECTURER NOTIFICATIONS -->
-                <div class="notification-dropdown-header">
-                  <div class="notification-title-group">
-                    <h4>Pending Reviews</h4>
-                    <span class="notification-count-pill">
-                      {{ pendingReviews() ?? 0 }} pending
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    class="notification-close-btn"
-                    (click)="closeNotifications()"
-                    aria-label="Close notifications"
-                  >
-                    ✕
-                  </button>
-                </div>
+              <svg
+                class="bell-svg"
+                [class.bell-svg--ringing]="bellNotificationCount() > 0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+              <span
+                class="bell-badge"
+                [class.bell-badge--active]="bellNotificationCount() > 0"
+              >
+                {{ bellNotificationCount() }}
+              </span>
+            </button>
 
-                <div class="notification-dropdown-body">
-                  @for (pub of pendingReviewPublications(); track pub.publication_id) {
-                    <div
-                      class="notification-item"
-                      tabindex="0"
-                      role="button"
-                      (click)="openPendingPublication(pub)"
-                      (keydown.enter)="openPendingPublication(pub)"
-                    >
-                      <div class="notification-item-icon">📄</div>
-                      <div class="notification-item-content">
-                        <div class="notification-item-top">
-                          <span class="notification-ref">{{ pub.publication_reference || pub.publication_id }}</span>
-                          @if (pub.publication_type) {
-                            <span class="notification-type-tag">{{ pub.publication_type }}</span>
-                          }
-                        </div>
-                        <h5 class="notification-item-title">{{ pub.title }}</h5>
-                        <p class="notification-item-meta">
-                          <span>
-                            <strong>By:</strong>
-                            {{ ((pub.submitter_firstname || '') + ' ' + (pub.submitter_surname || '')).trim() || pub.submitted_by || 'Student' }}
-                          </span>
-                          <span>•</span>
-                          <span>{{ formatDate(pub.submitted_at || pub.created_at) }}</span>
-                        </p>
-                        <span class="notification-item-cta">Review publication →</span>
-                      </div>
+            @if (isNotificationOpen()) {
+              <div
+                class="notification-dropdown"
+                (click)="$event.stopPropagation()"
+                role="region"
+                [attr.aria-label]="isReviewerRole() ? 'Pending review notifications' : 'Reviewed publications notifications'"
+              >
+                @if (isReviewerRole()) {
+                  <!-- REVIEWER / LECTURER NOTIFICATIONS -->
+                  <div class="notification-dropdown-header">
+                    <div class="notification-title-group">
+                      <h4>Pending Reviews</h4>
+                      <span class="notification-count-pill">
+                        {{ pendingReviews() ?? 0 }} pending
+                      </span>
                     </div>
-                  } @empty {
-                    <div class="notification-empty">
-                      <span class="notification-empty-icon">✓</span>
-                      <p>All caught up! You have no pending publications waiting for review.</p>
-                    </div>
-                  }
-                </div>
-
-                <div class="notification-dropdown-footer">
-                  <a
-                    routerLink="/review-publication"
-                    class="notification-view-all"
-                    (click)="closeNotifications()"
-                  >
-                    Open Full Review Queue →
-                  </a>
-                </div>
-              } @else {
-                <!-- STUDENT NOTIFICATIONS (APPROVED / REJECTED PUBLICATIONS) -->
-                <div class="notification-dropdown-header">
-                  <div class="notification-title-group">
-                    <h4>Publication Review Updates</h4>
-                    <span class="notification-count-pill">
-                      {{ studentReviewedPublications().length }} reviewed
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    class="notification-close-btn"
-                    (click)="closeNotifications()"
-                    aria-label="Close notifications"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div class="notification-dropdown-body">
-                  @for (pub of studentReviewedPublications(); track pub.publication_id) {
-                    <div
-                      class="notification-item"
-                      [class.notification-item--approved]="(pub.status || '').toLowerCase() === 'approved'"
-                      [class.notification-item--rejected]="(pub.status || '').toLowerCase() === 'rejected'"
-                      tabindex="0"
-                      role="button"
-                      (click)="openStudentNotification(pub)"
-                      (keydown.enter)="openStudentNotification(pub)"
+                    <button
+                      type="button"
+                      class="notification-close-btn"
+                      (click)="closeNotifications()"
+                      aria-label="Close notifications"
                     >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div class="notification-dropdown-body">
+                    @for (pub of pendingReviewPublications(); track pub.publication_id) {
                       <div
-                        class="notification-item-icon"
-                        [class.notification-item-icon--approved]="(pub.status || '').toLowerCase() === 'approved'"
-                        [class.notification-item-icon--rejected]="(pub.status || '').toLowerCase() === 'rejected'"
+                        class="notification-item"
+                        tabindex="0"
+                        role="button"
+                        (click)="openPendingPublication(pub)"
+                        (keydown.enter)="openPendingPublication(pub)"
                       >
-                        {{ (pub.status || '').toLowerCase() === 'approved' ? '✓' : '✕' }}
-                      </div>
-                      <div class="notification-item-content">
-                        <div class="notification-item-top">
-                          <span
-                            class="notification-decision-tag"
-                            [class.notification-decision-tag--approved]="(pub.status || '').toLowerCase() === 'approved'"
-                            [class.notification-decision-tag--rejected]="(pub.status || '').toLowerCase() === 'rejected'"
-                          >
-                            {{ (pub.status || '').toLowerCase() === 'approved' ? 'Approved' : 'Rejected' }}
-                          </span>
-                          <span class="notification-ref">{{ pub.publication_reference || pub.publication_id }}</span>
-                          @if (pub.publication_type) {
-                            <span class="notification-type-tag">{{ pub.publication_type }}</span>
-                          }
-                        </div>
-                        <h5 class="notification-item-title">{{ pub.title }}</h5>
-                        <p class="notification-item-meta">
-                          <span>
-                            <strong>Reviewer:</strong>
-                            {{ ((pub.lecturer_firstname || '') + ' ' + (pub.lecturer_surname || '')).trim() || pub.lecturer_id || 'Faculty Reviewer' }}
-                          </span>
-                          <span>•</span>
-                          <span>{{ formatDate(pub.updated_at || pub.submitted_at || pub.created_at) }}</span>
-                        </p>
-                        @if (pub.latest_comment_details || pub.latest_comment_title) {
-                          <div class="notification-feedback-box">
-                            <strong>Feedback:</strong>
-                            {{ pub.latest_comment_title ? pub.latest_comment_title + ' — ' : '' }}{{ pub.latest_comment_details }}
+                        <div class="notification-item-icon">📄</div>
+                        <div class="notification-item-content">
+                          <div class="notification-item-top">
+                            <span class="notification-ref">{{ pub.publication_reference || pub.publication_id }}</span>
+                            @if (pub.publication_type) {
+                              <span class="notification-type-tag">{{ pub.publication_type }}</span>
+                            }
                           </div>
-                        }
-                        <span class="notification-item-cta">
-                          {{ (pub.status || '').toLowerCase() === 'approved' ? 'View in Repository →' : 'Submit Revised Publication →' }}
-                        </span>
+                          <h5 class="notification-item-title">{{ pub.title }}</h5>
+                          <p class="notification-item-meta">
+                            <span>
+                              <strong>By:</strong>
+                              {{ ((pub.submitter_firstname || '') + ' ' + (pub.submitter_surname || '')).trim() || pub.submitted_by || 'Student' }}
+                            </span>
+                            <span>•</span>
+                            <span>{{ formatDate(pub.submitted_at || pub.created_at) }}</span>
+                          </p>
+                          <span class="notification-item-cta">Review publication →</span>
+                        </div>
                       </div>
-                    </div>
-                  } @empty {
-                    <div class="notification-empty">
-                      <span class="notification-empty-icon">🔔</span>
-                      <p>No review decisions yet. You will be notified here once your publication is approved or rejected.</p>
-                    </div>
-                  }
-                </div>
+                    } @empty {
+                      <div class="notification-empty">
+                        <span class="notification-empty-icon">✓</span>
+                        <p>All caught up! You have no pending publications waiting for review.</p>
+                      </div>
+                    }
+                  </div>
 
-                <div class="notification-dropdown-footer">
-                  <a
-                    routerLink="/search-publications"
-                    class="notification-view-all"
-                    (click)="closeNotifications()"
-                  >
-                    Browse Publication Repository →
-                  </a>
-                </div>
-              }
-            </div>
-          }
-        </div>
+                  <div class="notification-dropdown-footer">
+                    <a
+                      routerLink="/review-publication"
+                      class="notification-view-all"
+                      (click)="closeNotifications()"
+                    >
+                      Open Full Review Queue →
+                    </a>
+                  </div>
+                } @else {
+                  <!-- STUDENT NOTIFICATIONS (APPROVED / REJECTED PUBLICATIONS) -->
+                  <div class="notification-dropdown-header">
+                    <div class="notification-title-group">
+                      <h4>Publication Review Updates</h4>
+                      <span class="notification-count-pill">
+                        {{ studentReviewedPublications().length }} reviewed
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      class="notification-close-btn"
+                      (click)="closeNotifications()"
+                      aria-label="Close notifications"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div class="notification-dropdown-body">
+                    @for (pub of studentReviewedPublications(); track pub.publication_id) {
+                      <div
+                        class="notification-item"
+                        [class.notification-item--approved]="(pub.status || '').toLowerCase() === 'approved'"
+                        [class.notification-item--rejected]="(pub.status || '').toLowerCase() === 'rejected'"
+                        tabindex="0"
+                        role="button"
+                        (click)="openStudentNotification(pub)"
+                        (keydown.enter)="openStudentNotification(pub)"
+                      >
+                        <div
+                          class="notification-item-icon"
+                          [class.notification-item-icon--approved]="(pub.status || '').toLowerCase() === 'approved'"
+                          [class.notification-item-icon--rejected]="(pub.status || '').toLowerCase() === 'rejected'"
+                        >
+                          {{ (pub.status || '').toLowerCase() === 'approved' ? '✓' : '✕' }}
+                        </div>
+                        <div class="notification-item-content">
+                          <div class="notification-item-top">
+                            <span
+                              class="notification-decision-tag"
+                              [class.notification-decision-tag--approved]="(pub.status || '').toLowerCase() === 'approved'"
+                              [class.notification-decision-tag--rejected]="(pub.status || '').toLowerCase() === 'rejected'"
+                            >
+                              {{ (pub.status || '').toLowerCase() === 'approved' ? 'Approved' : 'Rejected' }}
+                            </span>
+                            <span class="notification-ref">{{ pub.publication_reference || pub.publication_id }}</span>
+                            @if (pub.publication_type) {
+                              <span class="notification-type-tag">{{ pub.publication_type }}</span>
+                            }
+                          </div>
+                          <h5 class="notification-item-title">{{ pub.title }}</h5>
+                          <p class="notification-item-meta">
+                            <span>
+                              <strong>Reviewer:</strong>
+                              {{ ((pub.lecturer_firstname || '') + ' ' + (pub.lecturer_surname || '')).trim() || pub.lecturer_id || 'Faculty Reviewer' }}
+                            </span>
+                            <span>•</span>
+                            <span>{{ formatDate(pub.updated_at || pub.submitted_at || pub.created_at) }}</span>
+                          </p>
+                          @if (pub.latest_comment_details || pub.latest_comment_title) {
+                            <div class="notification-feedback-box">
+                              <strong>Feedback:</strong>
+                              {{ pub.latest_comment_title ? pub.latest_comment_title + ' — ' : '' }}{{ pub.latest_comment_details }}
+                            </div>
+                          }
+                          <span class="notification-item-cta">
+                            {{ (pub.status || '').toLowerCase() === 'approved' ? 'View in Repository →' : 'Submit Revised Publication →' }}
+                          </span>
+                        </div>
+                      </div>
+                    } @empty {
+                      <div class="notification-empty">
+                        <span class="notification-empty-icon">🔔</span>
+                        <p>No review decisions yet. You will be notified here once your publication is approved or rejected.</p>
+                      </div>
+                    }
+                  </div>
+
+                  <div class="notification-dropdown-footer">
+                    <a
+                      routerLink="/search-publications"
+                      class="notification-view-all"
+                      (click)="closeNotifications()"
+                    >
+                      Browse Publication Repository →
+                    </a>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
 
         <span class="header-role-pill" [ngClass]="roleBadgeClass()">
           <span class="role-icon">{{ roleIcon() }}</span>
@@ -250,7 +254,7 @@
 
       <!-- Contextual Quick Stats -->
       <div class="stats-group">
-        @if (authService.hasAnyRole('lecturer', 'reviewer', 'admin')) {
+        @if (authService.hasAnyRole('lecturer', 'reviewer')) {
           <a routerLink="/review-publication" class="stats-card stats-card--review">
             <div class="stats-content">
               <span class="stats-label">Pending Reviews</span>
@@ -411,7 +415,7 @@
           } @else if (authService.hasAnyRole('lecturer', 'reviewer')) {
             Lecturers can submit research publications, review student and peer papers, and issue evaluation decisions.
           } @else if (authService.hasRole('admin')) {
-            Administrators have unrestricted access to all submission, review, and institutional reporting tools. User profiles and roles are centrally managed in Keycloak.
+            Administrators manage user profiles and generate institutional reports. Submission and review workspaces are reserved for students and lecturers.
           }
         </p>
       </div>

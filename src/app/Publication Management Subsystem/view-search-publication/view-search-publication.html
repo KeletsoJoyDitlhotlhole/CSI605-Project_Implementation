@@ -441,8 +441,8 @@
 
       <!-- Filter Controls Row -->
       <div class="filters-row">
-        <!-- Publication Type Filter Dropdown -->
         <div class="filter-controls-left">
+          <!-- Publication Type Filter Dropdown -->
           <div class="select-group">
             <label for="pubTypeSelect">Publication Type:</label>
             <select
@@ -453,6 +453,38 @@
             >
               @for (type of publicationTypes; track type.value) {
                 <option [value]="type.value">{{ type.label }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Year Filter Dropdown -->
+          <div class="select-group">
+            <label for="yearSelect">Year:</label>
+            <select
+              id="yearSelect"
+              class="filter-select"
+              [ngModel]="selectedYear()"
+              (ngModelChange)="onYearChange($event)"
+            >
+              <option value="all">All Years</option>
+              @for (y of availableYears(); track y) {
+                <option [value]="y">{{ y }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Subject Area Filter Dropdown -->
+          <div class="select-group">
+            <label for="subjectSelect">Subject Area:</label>
+            <select
+              id="subjectSelect"
+              class="filter-select"
+              [ngModel]="selectedSubject()"
+              (ngModelChange)="onSubjectChange($event)"
+            >
+              <option value="all">All Subjects</option>
+              @for (s of availableSubjects(); track s) {
+                <option [value]="s">{{ s }}</option>
               }
             </select>
           </div>
@@ -512,6 +544,47 @@
           }
         </div>
       </div>
+
+      <!-- Date Range Row -->
+      <div class="filters-row date-filter-row">
+        <div class="filter-controls-left">
+          <div class="select-group">
+            <label for="dateFromInput">Submitted From:</label>
+            <input
+              id="dateFromInput"
+              type="date"
+              class="filter-select"
+              [ngModel]="dateFrom()"
+              [attr.max]="dateTo() || todayIso"
+              (ngModelChange)="onDateFromChange($event)"
+            />
+          </div>
+
+          <div class="select-group">
+            <label for="dateToInput">To:</label>
+            <input
+              id="dateToInput"
+              type="date"
+              class="filter-select"
+              [ngModel]="dateTo()"
+              [attr.min]="dateFrom() || null"
+              [attr.max]="todayIso"
+              (ngModelChange)="onDateToChange($event)"
+            />
+          </div>
+
+          @if (dateFrom() || dateTo()) {
+            <button
+              type="button"
+              class="reset-filters-btn"
+              (click)="clearDates()"
+              title="Clear date range"
+            >
+              Clear dates
+            </button>
+          }
+        </div>
+      </div>
     </section>
 
     <!-- =========================
@@ -543,6 +616,24 @@
             <span class="chip">
               Type: {{ selectedType() }}
               <button type="button" (click)="onTypeChange('all')" title="Remove type filter">✕</button>
+            </span>
+          }
+          @if (selectedYear() !== 'all') {
+            <span class="chip">
+              Year: {{ selectedYear() }}
+              <button type="button" (click)="onYearChange('all')" title="Remove year filter">✕</button>
+            </span>
+          }
+          @if (selectedSubject() !== 'all') {
+            <span class="chip">
+              Subject: {{ selectedSubject() }}
+              <button type="button" (click)="onSubjectChange('all')" title="Remove subject filter">✕</button>
+            </span>
+          }
+          @if (dateFrom() || dateTo()) {
+            <span class="chip">
+              Date: {{ dateFrom() || '…' }} → {{ dateTo() || '…' }}
+              <button type="button" (click)="clearDates()" title="Remove date filter">✕</button>
             </span>
           }
         </div>
@@ -579,7 +670,7 @@
         <h3>No Publications Found</h3>
         @if (hasActiveFilters()) {
           <p>
-            No publications matched your search query. Try searching for different keywords, titles, or authors.
+            No publications matched your search query or filters. Try different keywords, a wider date range, or clear the filters.
           </p>
           <button type="button" class="empty-action" (click)="resetAllFilters()">
             Clear Search &amp; Show All
