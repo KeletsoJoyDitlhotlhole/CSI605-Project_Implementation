@@ -2,7 +2,13 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.27.
 
+## Final Documentation:
+https://github.com/KeletsoJoyDitlhotlhole/CSI605-Project_Implementation/blob/main/CSI605%20Project-%20Final%20Documentation.pdf
+
+## File Structure and Implementation Overview Documentation:
+
 ## Roles and Responsibilities
+https://github.com/KeletsoJoyDitlhotlhole/CSI605-Project_Implementation/blob/main/CSI605-Overview%20Of%20Implementation.pdf
 
 ### Keletso Joy Ditlhotlhole – Group Leader / Frontend Development
 Served as the group leader, coordinating team activities and ensuring an organised development process, including maintaining order within the shared repository. She contributed to UI design and frontend implementation and was specifically responsible for preparing the documentation and repository structure summary for the project documentation.
