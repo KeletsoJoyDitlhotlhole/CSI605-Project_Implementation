@@ -4,7 +4,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { PublicationService } from '../../services/publication.service';
-import { Publication, ReviewPublication } from '../../models/publication.model';
+import { Publication, ReviewPublication, ReviewComment } from '../../models/publication.model';
 
 export interface DashboardCard {
   id: string;
@@ -77,7 +77,10 @@ export class DashboardComponent implements OnInit {
   readonly reportTypeFilter = signal<string>('all');
 
   // Modals
-  readonly activeModal = signal<'reports' | null>(null);
+  readonly activeModal = signal<'reports' | 'feedback' | null>(null);
+  readonly selectedReviewFeedbackPub = signal<any | null>(null);
+  readonly reviewFeedbackComments = signal<ReviewComment[]>([]);
+  readonly loadingComments = signal<boolean>(false);
 
   private readonly allCards: DashboardCard[] = [
     {
@@ -368,12 +371,40 @@ export class DashboardComponent implements OnInit {
 
   openStudentNotification(pub: any): void {
     this.isNotificationOpen.set(false);
-    const statusLower = (pub?.status || '').trim().toLowerCase();
-    if (statusLower === 'approved') {
-      this.router.navigate(['/search-publications']);
+    this.selectedReviewFeedbackPub.set(pub);
+    this.activeModal.set('feedback');
+    this.loadingComments.set(true);
+    this.reviewFeedbackComments.set([]);
+
+    if (pub?.publication_id) {
+      this.pubService.getComments(pub.publication_id).subscribe({
+        next: comments => {
+          this.reviewFeedbackComments.set(comments || []);
+          this.loadingComments.set(false);
+        },
+        error: () => {
+          this.loadingComments.set(false);
+        }
+      });
     } else {
-      this.router.navigate(['/submit-publication']);
+      this.loadingComments.set(false);
     }
+  }
+
+  closeFeedbackModal(): void {
+    this.activeModal.set(null);
+    this.selectedReviewFeedbackPub.set(null);
+    this.reviewFeedbackComments.set([]);
+  }
+
+  goToRepositoryFromFeedback(): void {
+    this.closeFeedbackModal();
+    this.router.navigate(['/search-publications']);
+  }
+
+  goToResubmitFromFeedback(): void {
+    this.closeFeedbackModal();
+    this.router.navigate(['/submit-publication']);
   }
 
   refreshStats(): void {

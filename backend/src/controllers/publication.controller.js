@@ -649,6 +649,7 @@ const submitPublication = async (req, res) => {
       keywords,
       submittedBy,
       publicationType,
+      subjectArea,
       authors
     } = req.body;
 
@@ -722,8 +723,20 @@ const submitPublication = async (req, res) => {
 
     const cleanTitle = title.trim();
     const cleanAbstract = abstract.trim();
-    const cleanKeywords = keywords.trim();
+    let cleanKeywords = keywords.trim();
+    const cleanSubjectArea = typeof subjectArea === 'string' ? subjectArea.trim() : '';
+    if (cleanSubjectArea && !cleanKeywords.toLowerCase().includes(cleanSubjectArea.toLowerCase())) {
+      cleanKeywords = `${cleanSubjectArea}, ${cleanKeywords}`;
+    }
     const cleanAuthors = authorList.map(author => author.trim());
+
+    const abstractWords = cleanAbstract.split(/\s+/).filter(w => w.length > 0).length;
+    if (abstractWords > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: `Abstract exceeds the 1,000-word limit (contains ${abstractWords} words). Please reduce by ${abstractWords - 1000} words.`
+      });
+    }
 
     if (cleanTitle.length > 155 || cleanAuthors.some(a => a.length > 50)) {
       return res.status(400).json({

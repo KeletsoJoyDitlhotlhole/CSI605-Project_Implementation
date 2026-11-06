@@ -73,6 +73,20 @@ async function ensureReviewCommentsTable() {
 }
 ensureReviewCommentsTable();
 
+// Ensure the Publications table has subject_area column
+async function ensureSubjectAreaColumn() {
+  try {
+    await pool.query(`
+      ALTER TABLE public."Publications"
+      ADD COLUMN IF NOT EXISTS subject_area VARCHAR(100);
+    `);
+    console.log('Schema check OK: Publications.subject_area is ready.');
+  } catch (err) {
+    console.error('Schema check warning (Publications.subject_area):', err.message);
+  }
+}
+ensureSubjectAreaColumn();
+
 // Health check endpoint (public — no auth required)
 app.get("/api/health", async (req, res) => {
   try {

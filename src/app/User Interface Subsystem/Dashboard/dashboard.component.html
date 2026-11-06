@@ -185,7 +185,7 @@
                           </div>
                         }
                         <span class="notification-item-cta">
-                          {{ (pub.status || '').toLowerCase() === 'approved' ? 'View in Repository →' : 'Submit Revised Publication →' }}
+                          View Reviewer Comments &amp; Feedback →
                         </span>
                       </div>
                     </div>
@@ -685,6 +685,112 @@
             </button>
           }
           <button type="button" class="btn btn-primary" (click)="closeModal()">Close Report</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- =====================================================
+       MODAL: Reviewer Feedback & Comments
+       ===================================================== -->
+  @if (activeModal() === 'feedback' && selectedReviewFeedbackPub()) {
+    <div class="modal-backdrop" (click)="closeFeedbackModal()" role="presentation">
+      <div class="modal-dialog modal-dialog--md feedback-modal-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modalFeedbackTitle">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-eyebrow">REVIEWER FEEDBACK &amp; COMMENTS</span>
+            <h3 id="modalFeedbackTitle">{{ selectedReviewFeedbackPub()?.title }}</h3>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="closeFeedbackModal()" aria-label="Close dialog">✕</button>
+        </div>
+
+        <div class="modal-body feedback-modal-body">
+          <!-- Overview Details -->
+          <div class="feedback-overview-grid">
+            <div class="feedback-info-tile">
+              <span class="tile-label">Publication Reference</span>
+              <strong>{{ selectedReviewFeedbackPub()?.publication_reference || selectedReviewFeedbackPub()?.publication_id }}</strong>
+            </div>
+
+            <div class="feedback-info-tile">
+              <span class="tile-label">Review Decision</span>
+              <span
+                class="decision-badge"
+                [class.decision-badge--approved]="(selectedReviewFeedbackPub()?.status || '').toLowerCase() === 'approved'"
+                [class.decision-badge--rejected]="(selectedReviewFeedbackPub()?.status || '').toLowerCase() === 'rejected'"
+              >
+                {{ (selectedReviewFeedbackPub()?.status || '').toLowerCase() === 'approved' ? '✓ Approved' : '✕ Rejected' }}
+              </span>
+            </div>
+
+            <div class="feedback-info-tile">
+              <span class="tile-label">Document Type</span>
+              <span>{{ selectedReviewFeedbackPub()?.publication_type || 'Manuscript' }}</span>
+            </div>
+
+            <div class="feedback-info-tile">
+              <span class="tile-label">Reviewer</span>
+              <span>
+                {{ ((selectedReviewFeedbackPub()?.lecturer_firstname || '') + ' ' + (selectedReviewFeedbackPub()?.lecturer_surname || '')).trim() || selectedReviewFeedbackPub()?.lecturer_id || 'Assigned Faculty Reviewer' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Comments Stream Section -->
+          <div class="feedback-comments-section">
+            <h4 class="comments-heading">
+              <span>💬</span> Review Comments &amp; Recommendations
+            </h4>
+
+            @if (loadingComments()) {
+              <div class="feedback-loading">
+                <span class="spinner"></span> Loading review comments...
+              </div>
+            } @else if (reviewFeedbackComments().length > 0) {
+              <div class="comments-stream">
+                @for (c of reviewFeedbackComments(); track c.id) {
+                  <div class="comment-bubble">
+                    <div class="comment-bubble-header">
+                      <span class="comment-title">{{ c.title }}</span>
+                      <span class="comment-time">{{ formatDate(c.createdAt) }}</span>
+                    </div>
+                    <p class="comment-details">{{ c.details }}</p>
+                  </div>
+                }
+              </div>
+            } @else if (selectedReviewFeedbackPub()?.latest_comment_details || selectedReviewFeedbackPub()?.latest_comment_title) {
+              <div class="comments-stream">
+                <div class="comment-bubble">
+                  <div class="comment-bubble-header">
+                    <span class="comment-title">
+                      {{ selectedReviewFeedbackPub()?.latest_comment_title || 'Reviewer Evaluation' }}
+                    </span>
+                    @if (selectedReviewFeedbackPub()?.latest_comment_at) {
+                      <span class="comment-time">{{ formatDate(selectedReviewFeedbackPub()?.latest_comment_at) }}</span>
+                    }
+                  </div>
+                  <p class="comment-details">{{ selectedReviewFeedbackPub()?.latest_comment_details }}</p>
+                </div>
+              </div>
+            } @else {
+              <div class="no-comments-box">
+                <p>No specific comment details were attached to this review decision.</p>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="modal-footer feedback-modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeFeedbackModal()">Close</button>
+          @if ((selectedReviewFeedbackPub()?.status || '').toLowerCase() === 'approved') {
+            <button type="button" class="btn btn-primary" (click)="goToRepositoryFromFeedback()">
+              View in Publication Repository →
+            </button>
+          } @else {
+            <button type="button" class="btn btn-primary" (click)="goToResubmitFromFeedback()">
+              Submit Revised Publication →
+            </button>
+          }
         </div>
       </div>
     </div>
